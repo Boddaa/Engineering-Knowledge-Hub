@@ -7,8 +7,10 @@ using EngineeringKnowledgeHub.Domain.Entities;
 using EngineeringKnowledgeHub.Domain.Enums;
 
 /// <summary>
-/// Local-first knowledge article search engine supporting keyword scoring,
-/// multi-dimensional filtering, explicit sorting, and bounded pagination.
+/// Local-first knowledge article search engine supporting keyword substring scoring across text content
+/// (Title, Summary, Content), structured metadata filtering (Product, Technology, KnowledgeType, Tag, Status, VerificationStatus),
+/// explicit sorting, and bounded pagination.
+/// NOTE: In this pre-persistence phase, search executes in-memory over retrieved articles.
 /// </summary>
 public sealed class SearchService : ISearchService
 {

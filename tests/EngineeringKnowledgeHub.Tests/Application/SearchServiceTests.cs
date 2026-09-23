@@ -268,6 +268,28 @@ public class SearchServiceTests
         Assert.Equal(resultLower.Items[0].Id, resultUpper.Items[0].Id);
     }
 
+    [Fact]
+    public async Task SearchArticlesAsync_Should_Perform_Substring_Matching()
+    {
+        var article = CreateSampleArticle(
+            "RS485 Industrial Serial Transceiver",
+            "Hardware wiring guide",
+            "Connect differential lines to pins A and B.",
+            _typeConfiguration,
+            DateTimeOffset.UtcNow);
+
+        await _articleRepository.AddAsync(article);
+
+        // Substring match "485" inside "RS485"
+        var result = await _searchService.SearchArticlesAsync(new SearchArticleRequest
+        {
+            Query = "485"
+        });
+
+        Assert.Single(result.Items);
+        Assert.Equal(article.Id, result.Items[0].Id);
+    }
+
     #endregion
 
     #region Filtering Tests
