@@ -71,8 +71,8 @@ public class ArchitectureTests
     public void Domain_Entities_Should_Not_Have_Public_Setters()
     {
         var entityTypes = DomainAssembly.GetTypes()
-            .Where(t => t.Namespace?.StartsWith("EngineeringKnowledgeHub.Domain.Entities") == true 
-                     && t.IsClass 
+            .Where(t => t.Namespace?.StartsWith("EngineeringKnowledgeHub.Domain.Entities") == true
+                     && t.IsClass
                      && t.GetProperty("Id") != null);
 
         foreach (var type in entityTypes)

@@ -20,6 +20,12 @@ public class InMemoryKnowledgeArticleRepository : IKnowledgeArticleRepository
         return Task.FromResult(article);
     }
 
+    public Task<IReadOnlyList<KnowledgeArticle>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<KnowledgeArticle> list = _articles.Values.ToList();
+        return Task.FromResult(list);
+    }
+
     public Task<bool> ExistsBySlugAsync(Slug slug, CancellationToken cancellationToken = default)
     {
         var exists = _articles.Values.Any(a => a.Slug == slug);
@@ -164,5 +170,62 @@ public class InMemoryTechnologyRepository : ITechnologyRepository
     {
         _technologies[technology.Id] = technology;
         return Task.CompletedTask;
+    }
+}
+
+public class InMemoryIncidentRepository : IIncidentRepository
+{
+    private readonly ConcurrentDictionary<Guid, Incident> _incidents = new();
+
+    public Task<Incident?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _incidents.TryGetValue(id, out var incident);
+        return Task.FromResult(incident);
+    }
+
+    public Task<IReadOnlyList<Incident>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Incident> list = _incidents.Values.ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<IReadOnlyList<Incident>> GetByArticleIdAsync(Guid articleId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Incident> list = _incidents.Values
+            .Where(i => i.ArticleLinks.Any(l => l.ArticleId == articleId))
+            .ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task AddAsync(Incident incident, CancellationToken cancellationToken = default)
+    {
+        _incidents[incident.Id] = incident;
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAsync(Incident incident, CancellationToken cancellationToken = default)
+    {
+        _incidents[incident.Id] = incident;
+        return Task.CompletedTask;
+    }
+}
+
+public class InMemoryKnowledgeFeedbackRepository : IKnowledgeFeedbackRepository
+{
+    private readonly ConcurrentBag<KnowledgeFeedback> _feedbacks = [];
+
+    public Task AddAsync(KnowledgeFeedback feedback, CancellationToken cancellationToken = default)
+    {
+        _feedbacks.Add(feedback);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<KnowledgeFeedback>> GetByArticleIdAsync(Guid articleId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<KnowledgeFeedback> list = _feedbacks
+            .Where(f => f.ArticleId == articleId)
+            .OrderByDescending(f => f.CreatedAt)
+            .ToList();
+        return Task.FromResult(list);
     }
 }
