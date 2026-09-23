@@ -30,7 +30,7 @@ public sealed class ProductService(IProductRepository productRepository) : IProd
         }
 
         var product = new Product(
-            command.Id ?? Guid.NewGuid(),
+            Guid.NewGuid(),
             command.Name,
             normalizedCode,
             command.Description,

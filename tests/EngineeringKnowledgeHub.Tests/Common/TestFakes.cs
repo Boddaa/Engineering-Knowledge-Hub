@@ -5,6 +5,11 @@ using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Domain.Entities;
 using EngineeringKnowledgeHub.Domain.ValueObjects;
 
+public class FakeDateTimeProvider(DateTimeOffset utcNow) : IDateTimeProvider
+{
+    public DateTimeOffset UtcNow { get; set; } = utcNow;
+}
+
 public class InMemoryKnowledgeArticleRepository : IKnowledgeArticleRepository
 {
     private readonly ConcurrentDictionary<Guid, KnowledgeArticle> _articles = new();

@@ -11,7 +11,8 @@ public sealed class KnowledgeArticleService(
     IKnowledgeTypeRepository typeRepository,
     IKnowledgeTagRepository tagRepository,
     IProductRepository productRepository,
-    ITechnologyRepository technologyRepository) : IKnowledgeArticleService
+    ITechnologyRepository technologyRepository,
+    IDateTimeProvider dateTimeProvider) : IKnowledgeArticleService
 {
     public async Task<KnowledgeArticleDto> CreateArticleAsync(
         CreateKnowledgeArticleCommand command,
@@ -49,15 +50,16 @@ public sealed class KnowledgeArticleService(
             throw new ConflictException($"An article with slug '{slug.Value}' already exists.");
         }
 
+        var now = dateTimeProvider.UtcNow;
         var article = new KnowledgeArticle(
-            command.Id ?? Guid.NewGuid(),
+            Guid.NewGuid(),
             command.Title,
             slug,
             command.Summary,
             command.Content,
             command.KnowledgeTypeId,
             command.AuthorId,
-            command.CreatedAt);
+            now);
 
         await articleRepository.AddAsync(article, cancellationToken);
 
@@ -92,7 +94,8 @@ public sealed class KnowledgeArticleService(
             throw new ConflictException($"An article with slug '{slug.Value}' already exists.");
         }
 
-        article.UpdateContent(command.Title, slug, command.Summary, command.Content, command.UpdatedAt);
+        var now = dateTimeProvider.UtcNow;
+        article.UpdateContent(command.Title, slug, command.Summary, command.Content, now);
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
@@ -139,7 +142,8 @@ public sealed class KnowledgeArticleService(
         var article = await articleRepository.GetByIdAsync(command.ArticleId, cancellationToken)
             ?? throw new NotFoundException("KnowledgeArticle", command.ArticleId);
 
-        article.Approve(command.ReviewerId, command.ReviewedAt);
+        var now = dateTimeProvider.UtcNow;
+        article.Approve(command.ReviewerId, now);
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
@@ -158,7 +162,8 @@ public sealed class KnowledgeArticleService(
         var article = await articleRepository.GetByIdAsync(command.ArticleId, cancellationToken)
             ?? throw new NotFoundException("KnowledgeArticle", command.ArticleId);
 
-        article.Reject(command.ReviewerId, command.ReviewedAt);
+        var now = dateTimeProvider.UtcNow;
+        article.Reject(command.ReviewerId, now);
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 

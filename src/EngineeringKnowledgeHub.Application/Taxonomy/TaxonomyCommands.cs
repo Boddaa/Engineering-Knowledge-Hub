@@ -3,8 +3,7 @@ namespace EngineeringKnowledgeHub.Application.Taxonomy;
 public sealed record CreateKnowledgeCategoryCommand(
     string Name,
     string? Description = null,
-    Guid? ParentCategoryId = null,
-    Guid? Id = null);
+    Guid? ParentCategoryId = null);
 
 public sealed record UpdateKnowledgeCategoryCommand(
     Guid Id,
@@ -14,8 +13,7 @@ public sealed record UpdateKnowledgeCategoryCommand(
 
 public sealed record CreateKnowledgeTypeCommand(
     string Name,
-    string? Description = null,
-    Guid? Id = null);
+    string? Description = null);
 
 public sealed record UpdateKnowledgeTypeCommand(
     Guid Id,
@@ -23,8 +21,7 @@ public sealed record UpdateKnowledgeTypeCommand(
     string? Description = null);
 
 public sealed record CreateKnowledgeTagCommand(
-    string Name,
-    Guid? Id = null);
+    string Name);
 
 public sealed record UpdateKnowledgeTagCommand(
     Guid Id,

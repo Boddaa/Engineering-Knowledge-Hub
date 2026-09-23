@@ -436,3 +436,4 @@ G:\Bodda\OLD Tasks\Engineering Knowledge Hub\tests\EngineeringKnowledgeHub.Tests
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\tests\EngineeringKnowledgeHub.Tests\obj\Debug\net10.0\EngineeringKnowledgeHub.Tests.pdb
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\tests\EngineeringKnowledgeHub.Tests\obj\Debug\net10.0\EngineeringKnowledgeHub.Tests.genruntimeconfig.cache
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\tests\EngineeringKnowledgeHub.Tests\obj\Debug\net10.0\ref\EngineeringKnowledgeHub.Tests.dll
+G:\Bodda\OLD Tasks\Engineering Knowledge Hub\tests\EngineeringKnowledgeHub.Tests\obj\Debug\net10.0\EngineeringKnowledgeHub.Tests.sourcelink.json

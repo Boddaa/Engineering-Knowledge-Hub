@@ -13,3 +13,4 @@ G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Applica
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Application\obj\Debug\net10.0\refint\EngineeringKnowledgeHub.Application.dll
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Application\obj\Debug\net10.0\EngineeringKnowledgeHub.Application.pdb
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Application\obj\Debug\net10.0\ref\EngineeringKnowledgeHub.Application.dll
+G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Application\obj\Debug\net10.0\EngineeringKnowledgeHub.Application.sourcelink.json

@@ -4,8 +4,7 @@ public sealed record CreateProductCommand(
     string Name,
     string Code,
     string? Description = null,
-    bool IsActive = true,
-    Guid? Id = null);
+    bool IsActive = true);
 
 public sealed record UpdateProductCommand(
     Guid Id,
@@ -15,8 +14,7 @@ public sealed record UpdateProductCommand(
 
 public sealed record CreateTechnologyCommand(
     string Name,
-    string? Description = null,
-    Guid? Id = null);
+    string? Description = null);
 
 public sealed record UpdateTechnologyCommand(
     Guid Id,

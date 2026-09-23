@@ -9,3 +9,4 @@ G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Domain\
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Domain\obj\Debug\net10.0\refint\EngineeringKnowledgeHub.Domain.dll
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Domain\obj\Debug\net10.0\EngineeringKnowledgeHub.Domain.pdb
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Domain\obj\Debug\net10.0\ref\EngineeringKnowledgeHub.Domain.dll
+G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Domain\obj\Debug\net10.0\EngineeringKnowledgeHub.Domain.sourcelink.json

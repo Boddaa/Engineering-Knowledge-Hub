@@ -50,3 +50,4 @@ G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Api\obj
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Api\obj\Debug\net10.0\EngineeringKnowledgeHub.Api.pdb
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Api\obj\Debug\net10.0\EngineeringKnowledgeHub.Api.genruntimeconfig.cache
 G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Api\obj\Debug\net10.0\ref\EngineeringKnowledgeHub.Api.dll
+G:\Bodda\OLD Tasks\Engineering Knowledge Hub\src\EngineeringKnowledgeHub.Api\obj\Debug\net10.0\EngineeringKnowledgeHub.Api.sourcelink.json

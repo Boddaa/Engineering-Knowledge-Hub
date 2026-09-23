@@ -19,7 +19,7 @@ public sealed class TechnologyService(ITechnologyRepository technologyRepository
         }
 
         var technology = new Technology(
-            command.Id ?? Guid.NewGuid(),
+            Guid.NewGuid(),
             command.Name,
             command.Description);
 

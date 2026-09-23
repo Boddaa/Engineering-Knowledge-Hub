@@ -951,13 +951,13 @@ Future metrics:
 
 Solution structure, project references, configuration, DI, logging, exception handling, health checks, tests, README, architecture rules.
 
-## Phase 1: Identity
+## Phase 1: Core Domain Foundation (and Identity Domain)
 
-Users, roles, authentication, authorization, current-user abstraction, development seed, audit foundation.
+Core domain entities, value objects, invariants, taxonomy, user/role domain models, and application boundaries. Identity authentication and authorization infrastructure follow once persistence and API boundaries are established.
 
-## Phase 2: Knowledge Core
+## Phase 2: Knowledge Core Application Foundation
 
-Articles, categories, types, tags, products, technologies, relationships, CRUD, validation, workflow.
+Articles, categories, types, tags, products, technologies, relationships, CRUD, validation, and review workflow application use cases.
 
 ## Phase 3: Search
 

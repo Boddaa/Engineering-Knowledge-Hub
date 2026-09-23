@@ -33,7 +33,7 @@ public sealed class KnowledgeTaxonomyService(
         }
 
         var category = new KnowledgeCategory(
-            command.Id ?? Guid.NewGuid(),
+            Guid.NewGuid(),
             command.Name,
             command.Description,
             command.ParentCategoryId);
@@ -97,7 +97,7 @@ public sealed class KnowledgeTaxonomyService(
         }
 
         var type = new KnowledgeType(
-            command.Id ?? Guid.NewGuid(),
+            Guid.NewGuid(),
             command.Name,
             command.Description);
 
@@ -158,7 +158,7 @@ public sealed class KnowledgeTaxonomyService(
         }
 
         var tag = new KnowledgeTag(
-            command.Id ?? Guid.NewGuid(),
+            Guid.NewGuid(),
             command.Name);
 
         await tagRepository.AddAsync(tag, cancellationToken);
