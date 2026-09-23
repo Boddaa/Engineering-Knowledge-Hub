@@ -632,29 +632,32 @@ erDiagram
 
 # 11. Search Strategy
 
-### Phase 1
+### Local-First Keyword & Metadata Search Foundation
 
-Keyword/full-text search across title, summary, content, tags, products, technologies, and error codes.
-
-### Phase 2
-
-Semantic search with embeddings.
-
-### Phase 3
-
-Hybrid retrieval:
+The search engine distinguishes between text keyword matching and structured criteria filtering:
 
 ```text
-Keyword relevance
-+ Semantic similarity
-+ Verification status
-+ Product relevance
-+ Technology relevance
+Keyword search:
+- Title
+- Summary
+- Content
+
+Structured metadata filters:
+- Product
+- Technology
+- KnowledgeType
+- Tag
+- Status
+- VerificationStatus
 ```
 
-### Phase 4
+Keyword search operates as case-insensitive substring matching over text fields, while taxonomy dimensions and lifecycle states act as structured query filters. Source and Date filtering are introduced in subsequent source/persistence phases.
 
-RAG with evidence and source attribution.
+### Future Search Evolution
+
+- **Semantic Search**: Vector embeddings and semantic similarity retrieval across document chunks and articles (Phase 7).
+- **Hybrid Retrieval**: Combining keyword relevance, semantic similarity, verification status, and product/technology relevance (Phase 7).
+- **RAG**: Retrieval-Augmented Generation with evidence and source attribution (Phase 8).
 
 ---
 

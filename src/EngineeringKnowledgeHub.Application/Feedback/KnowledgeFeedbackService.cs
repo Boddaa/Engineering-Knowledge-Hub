@@ -55,6 +55,12 @@ public sealed class KnowledgeFeedbackService : IKnowledgeFeedbackService
             throw new NotFoundException("KnowledgeArticle", command.ArticleId);
         }
 
+        if (article.Status != KnowledgeStatus.Published)
+        {
+            throw new ValidationException(
+                $"Cannot submit feedback for an article with status '{article.Status}'. Feedback can only be submitted for published articles.");
+        }
+
         var feedback = new KnowledgeFeedback(
             Guid.NewGuid(),
             command.ArticleId,
