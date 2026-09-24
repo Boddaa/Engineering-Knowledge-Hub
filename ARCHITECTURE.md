@@ -623,8 +623,11 @@ erDiagram
 - Use soft deletion for valuable knowledge.
 - Use optimistic concurrency for editing.
 - Published knowledge must be versioned.
-- Preserve historical versions.
-- Add unique constraints for usernames, emails, product codes, tag names, article slugs, and document hashes.
+- Preserve historical versions through immutable knowledge versions.
+- Governance actions create audit history.
+- Version numbers are deterministic and unique per article.
+- Historical versions are immutable and not mutated.
+- Add unique constraints for usernames, emails, product codes, tag names, article slugs, (articleId, versionNumber), and document hashes.
 - Add indexes based on real query patterns.
 - Avoid a generic repository layer unless a concrete need appears.
 

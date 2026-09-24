@@ -5,6 +5,7 @@ using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Application.Common.Services;
 using EngineeringKnowledgeHub.Application.Documents;
 using EngineeringKnowledgeHub.Application.Feedback;
+using EngineeringKnowledgeHub.Application.Governance;
 using EngineeringKnowledgeHub.Application.Incidents;
 using EngineeringKnowledgeHub.Application.ProductsAndTechnologies;
 using EngineeringKnowledgeHub.Application.Search;
@@ -21,6 +22,7 @@ public static class ApplicationDependencyInjection
         services.AddSingleton<IDocumentTextExtractor, PlainTextDocumentExtractor>();
 
         services.AddScoped<IKnowledgeArticleService, KnowledgeArticleService>();
+        services.AddScoped<IKnowledgeGovernanceService, KnowledgeGovernanceService>();
         services.AddScoped<IKnowledgeTaxonomyService, KnowledgeTaxonomyService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ITechnologyService, TechnologyService>();

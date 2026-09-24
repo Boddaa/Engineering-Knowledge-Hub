@@ -1,6 +1,7 @@
 namespace EngineeringKnowledgeHub.Tests.Common;
 
 using System.Collections.Concurrent;
+using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Domain.Entities;
 using EngineeringKnowledgeHub.Domain.Enums;
@@ -331,6 +332,110 @@ public class InMemoryDocumentRepository : IDocumentRepository
     {
         _documents[document.Id] = document;
         return Task.CompletedTask;
+    }
+}
+
+public class InMemoryKnowledgeVersionRepository : IKnowledgeVersionRepository
+{
+    private readonly ConcurrentDictionary<Guid, KnowledgeVersion> _versions = new();
+
+    public Task<KnowledgeVersion?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _versions.TryGetValue(id, out var version);
+        return Task.FromResult(version);
+    }
+
+    public Task<KnowledgeVersion?> GetByArticleAndVersionNumberAsync(Guid articleId, int versionNumber, CancellationToken cancellationToken = default)
+    {
+        var version = _versions.Values.FirstOrDefault(v => v.ArticleId == articleId && v.VersionNumber == versionNumber);
+        return Task.FromResult(version);
+    }
+
+    public Task<IReadOnlyList<KnowledgeVersion>> GetByArticleIdAsync(Guid articleId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<KnowledgeVersion> list = _versions.Values
+            .Where(v => v.ArticleId == articleId)
+            .ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<int> GetLatestVersionNumberAsync(Guid articleId, CancellationToken cancellationToken = default)
+    {
+        var versions = _versions.Values.Where(v => v.ArticleId == articleId).ToList();
+        var max = versions.Count != 0 ? versions.Max(v => v.VersionNumber) : 0;
+        return Task.FromResult(max);
+    }
+
+    public Task<bool> ExistsAsync(Guid articleId, int versionNumber, CancellationToken cancellationToken = default)
+    {
+        var exists = _versions.Values.Any(v => v.ArticleId == articleId && v.VersionNumber == versionNumber);
+        return Task.FromResult(exists);
+    }
+
+    public Task AddAsync(KnowledgeVersion version, CancellationToken cancellationToken = default)
+    {
+        if (_versions.Values.Any(v => v.ArticleId == version.ArticleId && v.VersionNumber == version.VersionNumber))
+        {
+            throw new ConflictException($"Version {version.VersionNumber} already exists for article '{version.ArticleId}'.");
+        }
+
+        _versions[version.Id] = version;
+        return Task.CompletedTask;
+    }
+}
+
+public class InMemoryAuditLogRepository : IAuditLogRepository
+{
+    private readonly List<AuditLog> _logs = [];
+    private readonly object _lock = new();
+
+    public Task<AuditLog?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var log = _logs.FirstOrDefault(l => l.Id == id);
+            return Task.FromResult(log);
+        }
+    }
+
+    public Task<IReadOnlyList<AuditLog>> GetByEntityAsync(string entityName, Guid entityId, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            IReadOnlyList<AuditLog> list = _logs
+                .Where(l => string.Equals(l.EntityName, entityName, StringComparison.OrdinalIgnoreCase) && l.EntityId == entityId)
+                .ToList();
+            return Task.FromResult(list);
+        }
+    }
+
+    public Task<IReadOnlyList<AuditLog>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            IReadOnlyList<AuditLog> list = _logs
+                .Where(l => l.UserId == userId)
+                .ToList();
+            return Task.FromResult(list);
+        }
+    }
+
+    public Task<IReadOnlyList<AuditLog>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            IReadOnlyList<AuditLog> list = _logs.ToList();
+            return Task.FromResult(list);
+        }
+    }
+
+    public Task AddAsync(AuditLog auditLog, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            _logs.Add(auditLog);
+            return Task.CompletedTask;
+        }
     }
 }
 

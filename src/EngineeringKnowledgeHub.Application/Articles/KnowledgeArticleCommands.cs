@@ -17,7 +17,9 @@ public sealed record UpdateKnowledgeArticleCommand(
 
 public sealed record ApproveKnowledgeArticleCommand(
     Guid ArticleId,
-    Guid ReviewerId);
+    Guid ReviewerId,
+    string? ChangeSummary = null,
+    bool CreateVersion = false);
 
 public sealed record RejectKnowledgeArticleCommand(
     Guid ArticleId,

@@ -3,6 +3,7 @@ namespace EngineeringKnowledgeHub.Application.Articles;
 using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Application.DTOs;
+using EngineeringKnowledgeHub.Domain.Constants;
 using EngineeringKnowledgeHub.Domain.Entities;
 using EngineeringKnowledgeHub.Domain.ValueObjects;
 
@@ -12,7 +13,9 @@ public sealed class KnowledgeArticleService(
     IKnowledgeTagRepository tagRepository,
     IProductRepository productRepository,
     ITechnologyRepository technologyRepository,
-    IDateTimeProvider dateTimeProvider) : IKnowledgeArticleService
+    IDateTimeProvider dateTimeProvider,
+    IAuditLogRepository? auditLogRepository = null,
+    IKnowledgeVersionRepository? versionRepository = null) : IKnowledgeArticleService
 {
     public async Task<KnowledgeArticleDto> CreateArticleAsync(
         CreateKnowledgeArticleCommand command,
@@ -114,8 +117,14 @@ public sealed class KnowledgeArticleService(
         return KnowledgeArticleDto.FromDomain(article);
     }
 
+    public Task<KnowledgeArticleDto> SubmitForReviewAsync(
+        Guid id,
+        CancellationToken cancellationToken = default) =>
+        SubmitForReviewAsync(id, Guid.Empty, cancellationToken);
+
     public async Task<KnowledgeArticleDto> SubmitForReviewAsync(
         Guid id,
+        Guid submitterId,
         CancellationToken cancellationToken = default)
     {
         if (id == Guid.Empty) throw new ValidationException("Article Id cannot be empty.");
@@ -126,6 +135,22 @@ public sealed class KnowledgeArticleService(
         article.SubmitForReview();
 
         await articleRepository.UpdateAsync(article, cancellationToken);
+
+        if (auditLogRepository is not null)
+        {
+            var actor = submitterId != Guid.Empty ? submitterId : article.AuthorId;
+            var now = dateTimeProvider.UtcNow;
+            var audit = new AuditLog(
+                Guid.NewGuid(),
+                actor,
+                GovernanceAuditActions.ArticleSubmittedForReview,
+                nameof(KnowledgeArticle),
+                article.Id,
+                "Article submitted for review.",
+                now);
+
+            await auditLogRepository.AddAsync(audit, cancellationToken);
+        }
 
         return KnowledgeArticleDto.FromDomain(article);
     }
@@ -147,6 +172,52 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
+        if (auditLogRepository is not null)
+        {
+            var audit = new AuditLog(
+                Guid.NewGuid(),
+                command.ReviewerId,
+                GovernanceAuditActions.ArticleApproved,
+                nameof(KnowledgeArticle),
+                article.Id,
+                $"Article approved by reviewer '{command.ReviewerId}'.",
+                now);
+
+            await auditLogRepository.AddAsync(audit, cancellationToken);
+        }
+
+        if (versionRepository is not null && command.CreateVersion)
+        {
+            var latest = await versionRepository.GetLatestVersionNumberAsync(article.Id, cancellationToken);
+            var nextVersion = latest + 1;
+            var changeSummary = string.IsNullOrWhiteSpace(command.ChangeSummary) ? "Approved and published." : command.ChangeSummary.Trim();
+            var version = new KnowledgeVersion(
+                Guid.NewGuid(),
+                article.Id,
+                nextVersion,
+                article.Title,
+                article.Content,
+                command.ReviewerId,
+                changeSummary,
+                now);
+
+            await versionRepository.AddAsync(version, cancellationToken);
+
+            if (auditLogRepository is not null)
+            {
+                var versionAudit = new AuditLog(
+                    Guid.NewGuid(),
+                    command.ReviewerId,
+                    GovernanceAuditActions.KnowledgeVersionCreated,
+                    nameof(KnowledgeVersion),
+                    version.Id,
+                    $"Version {version.VersionNumber} created for article '{article.Id}'.",
+                    now);
+
+                await auditLogRepository.AddAsync(versionAudit, cancellationToken);
+            }
+        }
+
         return KnowledgeArticleDto.FromDomain(article);
     }
 
@@ -167,11 +238,31 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
+        if (auditLogRepository is not null)
+        {
+            var audit = new AuditLog(
+                Guid.NewGuid(),
+                command.ReviewerId,
+                GovernanceAuditActions.ArticleRejected,
+                nameof(KnowledgeArticle),
+                article.Id,
+                $"Article rejected by reviewer '{command.ReviewerId}'.",
+                now);
+
+            await auditLogRepository.AddAsync(audit, cancellationToken);
+        }
+
         return KnowledgeArticleDto.FromDomain(article);
     }
 
+    public Task<KnowledgeArticleDto> DeprecateArticleAsync(
+        Guid id,
+        CancellationToken cancellationToken = default) =>
+        DeprecateArticleAsync(id, Guid.Empty, cancellationToken);
+
     public async Task<KnowledgeArticleDto> DeprecateArticleAsync(
         Guid id,
+        Guid actorId,
         CancellationToken cancellationToken = default)
     {
         if (id == Guid.Empty) throw new ValidationException("Article Id cannot be empty.");
@@ -183,11 +274,33 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
+        if (auditLogRepository is not null)
+        {
+            var actor = actorId != Guid.Empty ? actorId : (article.ReviewerId ?? article.AuthorId);
+            var now = dateTimeProvider.UtcNow;
+            var audit = new AuditLog(
+                Guid.NewGuid(),
+                actor,
+                GovernanceAuditActions.ArticleDeprecated,
+                nameof(KnowledgeArticle),
+                article.Id,
+                $"Article deprecated by actor '{actor}'.",
+                now);
+
+            await auditLogRepository.AddAsync(audit, cancellationToken);
+        }
+
         return KnowledgeArticleDto.FromDomain(article);
     }
 
+    public Task<KnowledgeArticleDto> ArchiveArticleAsync(
+        Guid id,
+        CancellationToken cancellationToken = default) =>
+        ArchiveArticleAsync(id, Guid.Empty, cancellationToken);
+
     public async Task<KnowledgeArticleDto> ArchiveArticleAsync(
         Guid id,
+        Guid actorId,
         CancellationToken cancellationToken = default)
     {
         if (id == Guid.Empty) throw new ValidationException("Article Id cannot be empty.");
@@ -198,6 +311,22 @@ public sealed class KnowledgeArticleService(
         article.Archive();
 
         await articleRepository.UpdateAsync(article, cancellationToken);
+
+        if (auditLogRepository is not null)
+        {
+            var actor = actorId != Guid.Empty ? actorId : article.AuthorId;
+            var now = dateTimeProvider.UtcNow;
+            var audit = new AuditLog(
+                Guid.NewGuid(),
+                actor,
+                GovernanceAuditActions.ArticleArchived,
+                nameof(KnowledgeArticle),
+                article.Id,
+                $"Article archived by actor '{actor}'.",
+                now);
+
+            await auditLogRepository.AddAsync(audit, cancellationToken);
+        }
 
         return KnowledgeArticleDto.FromDomain(article);
     }
