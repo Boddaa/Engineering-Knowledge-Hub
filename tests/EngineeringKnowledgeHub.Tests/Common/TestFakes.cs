@@ -3,6 +3,7 @@ namespace EngineeringKnowledgeHub.Tests.Common;
 using System.Collections.Concurrent;
 using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Domain.Entities;
+using EngineeringKnowledgeHub.Domain.Enums;
 using EngineeringKnowledgeHub.Domain.ValueObjects;
 
 public class FakeDateTimeProvider(DateTimeOffset utcNow) : IDateTimeProvider
@@ -229,3 +230,107 @@ public class InMemoryKnowledgeFeedbackRepository : IKnowledgeFeedbackRepository
         return Task.FromResult(list);
     }
 }
+
+public class InMemoryKnowledgeSourceRepository : IKnowledgeSourceRepository
+{
+    private readonly ConcurrentDictionary<Guid, KnowledgeSource> _sources = new();
+
+    public Task<KnowledgeSource?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _sources.TryGetValue(id, out var source);
+        return Task.FromResult(source);
+    }
+
+    public Task<IReadOnlyList<KnowledgeSource>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<KnowledgeSource> list = _sources.Values.ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<IReadOnlyList<KnowledgeSource>> GetFilteredAsync(
+        SourceType? sourceType = null,
+        TrustLevel? trustLevel = null,
+        bool? isApproved = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _sources.Values.AsEnumerable();
+
+        if (sourceType.HasValue)
+        {
+            query = query.Where(s => s.SourceType == sourceType.Value);
+        }
+
+        if (trustLevel.HasValue)
+        {
+            query = query.Where(s => s.TrustLevel == trustLevel.Value);
+        }
+
+        if (isApproved.HasValue)
+        {
+            query = query.Where(s => s.IsApproved == isApproved.Value);
+        }
+
+        IReadOnlyList<KnowledgeSource> list = query.ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var exists = _sources.Values.Any(s => string.Equals(s.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(exists);
+    }
+
+    public Task AddAsync(KnowledgeSource source, CancellationToken cancellationToken = default)
+    {
+        _sources[source.Id] = source;
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAsync(KnowledgeSource source, CancellationToken cancellationToken = default)
+    {
+        _sources[source.Id] = source;
+        return Task.CompletedTask;
+    }
+}
+
+public class InMemoryDocumentRepository : IDocumentRepository
+{
+    private readonly ConcurrentDictionary<Guid, Document> _documents = new();
+
+    public Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _documents.TryGetValue(id, out var document);
+        return Task.FromResult(document);
+    }
+
+    public Task<Document?> GetByHashAsync(string fileHash, CancellationToken cancellationToken = default)
+    {
+        var document = _documents.Values.FirstOrDefault(d => string.Equals(d.FileHash, fileHash.Trim(), StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(document);
+    }
+
+    public Task<IReadOnlyList<Document>> GetBySourceIdAsync(Guid sourceId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Document> list = _documents.Values.Where(d => d.SourceId == sourceId).ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<bool> ExistsByHashAsync(string fileHash, CancellationToken cancellationToken = default)
+    {
+        var exists = _documents.Values.Any(d => string.Equals(d.FileHash, fileHash.Trim(), StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(exists);
+    }
+
+    public Task AddAsync(Document document, CancellationToken cancellationToken = default)
+    {
+        _documents[document.Id] = document;
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAsync(Document document, CancellationToken cancellationToken = default)
+    {
+        _documents[document.Id] = document;
+        return Task.CompletedTask;
+    }
+}
+

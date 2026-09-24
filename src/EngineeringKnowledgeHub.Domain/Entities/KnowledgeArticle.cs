@@ -5,6 +5,12 @@ using EngineeringKnowledgeHub.Domain.Exceptions;
 using EngineeringKnowledgeHub.Domain.ValueObjects;
 
 /// <summary>
+/// Provenance link between a knowledge article and a supporting source,
+/// optionally specifying citation reference text, section, or page.
+/// </summary>
+public sealed record ArticleSourceLink(Guid SourceId, string? ReferenceText = null);
+
+/// <summary>
 /// Core knowledge aggregate root representing human-readable technical documentation,
 /// procedures, troubleshooting guides, configurations, and engineering notes.
 /// </summary>
@@ -13,7 +19,7 @@ public sealed class KnowledgeArticle
     private readonly HashSet<Guid> _tagIds = [];
     private readonly HashSet<Guid> _productIds = [];
     private readonly HashSet<Guid> _technologyIds = [];
-    private readonly HashSet<Guid> _sourceIds = [];
+    private readonly List<ArticleSourceLink> _sourceLinks = [];
 
     public Guid Id { get; private set; }
     public string Title { get; private set; }
@@ -33,7 +39,8 @@ public sealed class KnowledgeArticle
     public IReadOnlyCollection<Guid> TagIds => _tagIds;
     public IReadOnlyCollection<Guid> ProductIds => _productIds;
     public IReadOnlyCollection<Guid> TechnologyIds => _technologyIds;
-    public IReadOnlyCollection<Guid> SourceIds => _sourceIds;
+    public IReadOnlyCollection<Guid> SourceIds => _sourceLinks.Select(s => s.SourceId).Distinct().ToList();
+    public IReadOnlyCollection<ArticleSourceLink> SourceLinks => _sourceLinks.AsReadOnly();
 
     public KnowledgeArticle(
         Guid id,
@@ -177,13 +184,26 @@ public sealed class KnowledgeArticle
 
     public void RemoveTechnology(Guid technologyId) => _technologyIds.Remove(technologyId);
 
-    public void AddSource(Guid sourceId)
+    public void AddSource(Guid sourceId, string? referenceText = null)
     {
         if (sourceId == Guid.Empty) throw new DomainRuleViolationException("Source Id cannot be empty.");
-        _sourceIds.Add(sourceId);
+        if (_sourceLinks.Any(s => s.SourceId == sourceId))
+        {
+            throw new DomainRuleViolationException($"Source '{sourceId}' is already attached to this article.");
+        }
+
+        _sourceLinks.Add(new ArticleSourceLink(sourceId, referenceText?.Trim()));
     }
 
-    public void RemoveSource(Guid sourceId) => _sourceIds.Remove(sourceId);
+    public void RemoveSource(Guid sourceId)
+    {
+        if (sourceId == Guid.Empty) throw new DomainRuleViolationException("Source Id cannot be empty.");
+        var removed = _sourceLinks.RemoveAll(s => s.SourceId == sourceId);
+        if (removed == 0)
+        {
+            throw new DomainRuleViolationException($"Source '{sourceId}' is not attached to this article.");
+        }
+    }
 
     private static void ValidateTitleAndContent(string title, string content)
     {

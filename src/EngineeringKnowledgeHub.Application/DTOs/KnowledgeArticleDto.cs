@@ -21,7 +21,8 @@ public sealed record KnowledgeArticleDto(
     IReadOnlyCollection<Guid> TagIds,
     IReadOnlyCollection<Guid> ProductIds,
     IReadOnlyCollection<Guid> TechnologyIds,
-    IReadOnlyCollection<Guid> SourceIds)
+    IReadOnlyCollection<Guid> SourceIds,
+    IReadOnlyCollection<ArticleSourceLinkDto>? SourceLinks = null)
 {
     public static KnowledgeArticleDto FromDomain(KnowledgeArticle article) =>
         new(
@@ -42,5 +43,6 @@ public sealed record KnowledgeArticleDto(
             article.TagIds,
             article.ProductIds,
             article.TechnologyIds,
-            article.SourceIds);
+            article.SourceIds,
+            article.SourceLinks.Select(ArticleSourceLinkDto.FromDomain).ToList());
 }

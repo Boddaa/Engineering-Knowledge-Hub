@@ -343,4 +343,63 @@ public class KnowledgeArticleTests
 
         Assert.Throws<DomainRuleViolationException>(() => article.Reject(_reviewerId, _now));
     }
+
+    [Fact]
+    public void AddSource_With_Valid_Parameters_Should_Add_SourceLink_And_SourceId()
+    {
+        var article = CreateValidArticle();
+        var sourceId = Guid.NewGuid();
+
+        article.AddSource(sourceId, "Section 4.2 - Network Camera Calibration");
+
+        Assert.Contains(sourceId, article.SourceIds);
+        Assert.Single(article.SourceLinks);
+        var link = article.SourceLinks.First();
+        Assert.Equal(sourceId, link.SourceId);
+        Assert.Equal("Section 4.2 - Network Camera Calibration", link.ReferenceText);
+    }
+
+    [Fact]
+    public void AddSource_With_Duplicate_SourceId_Should_Throw_DomainRuleViolationException()
+    {
+        var article = CreateValidArticle();
+        var sourceId = Guid.NewGuid();
+        article.AddSource(sourceId, "First reference");
+
+        var ex = Assert.Throws<DomainRuleViolationException>(() =>
+            article.AddSource(sourceId, "Second reference"));
+
+        Assert.Contains("already attached", ex.Message);
+    }
+
+    [Fact]
+    public void AddSource_With_Empty_SourceId_Should_Throw_DomainRuleViolationException()
+    {
+        var article = CreateValidArticle();
+
+        Assert.Throws<DomainRuleViolationException>(() =>
+            article.AddSource(Guid.Empty));
+    }
+
+    [Fact]
+    public void RemoveSource_With_Attached_Source_Should_Remove_Link()
+    {
+        var article = CreateValidArticle();
+        var sourceId = Guid.NewGuid();
+        article.AddSource(sourceId, "Ref");
+
+        article.RemoveSource(sourceId);
+
+        Assert.Empty(article.SourceIds);
+        Assert.Empty(article.SourceLinks);
+    }
+
+    [Fact]
+    public void RemoveSource_When_Not_Attached_Should_Throw_DomainRuleViolationException()
+    {
+        var article = CreateValidArticle();
+
+        Assert.Throws<DomainRuleViolationException>(() =>
+            article.RemoveSource(Guid.NewGuid()));
+    }
 }

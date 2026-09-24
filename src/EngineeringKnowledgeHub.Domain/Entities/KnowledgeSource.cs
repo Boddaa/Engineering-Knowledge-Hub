@@ -30,33 +30,52 @@ public sealed class KnowledgeSource
     {
         if (id == Guid.Empty) throw new DomainRuleViolationException("KnowledgeSource Id cannot be empty.");
         if (string.IsNullOrWhiteSpace(name)) throw new DomainRuleViolationException("KnowledgeSource name cannot be null or whitespace.");
+        if (!Enum.IsDefined(sourceType)) throw new DomainRuleViolationException($"Invalid SourceType: '{sourceType}'.");
+        if (!Enum.IsDefined(trustLevel)) throw new DomainRuleViolationException($"Invalid TrustLevel: '{trustLevel}'.");
+
+        var trimmedUrl = url?.Trim() ?? string.Empty;
+        if (!string.IsNullOrEmpty(trimmedUrl) && !Uri.TryCreate(trimmedUrl, UriKind.Absolute, out _))
+        {
+            throw new DomainRuleViolationException("KnowledgeSource Url must be a valid absolute URI if provided.");
+        }
 
         Id = id;
         Name = name.Trim();
         SourceType = sourceType;
-        Url = url?.Trim() ?? string.Empty;
+        Url = trimmedUrl;
         Description = description?.Trim() ?? string.Empty;
         TrustLevel = trustLevel;
         IsApproved = isApproved;
         CreatedAt = createdAt;
     }
 
-    public void Approve()
+    public void Approve(DateTimeOffset? approvedAt = null)
     {
         IsApproved = true;
         if (TrustLevel == TrustLevel.Untrusted)
         {
             TrustLevel = TrustLevel.Verified;
         }
+
+        if (approvedAt.HasValue)
+        {
+            UpdatedAt = approvedAt.Value;
+        }
     }
 
-    public void RevokeApproval()
+    public void RevokeApproval(DateTimeOffset? revokedAt = null)
     {
         IsApproved = false;
+        if (revokedAt.HasValue)
+        {
+            UpdatedAt = revokedAt.Value;
+        }
     }
 
     public void UpdateTrustLevel(TrustLevel trustLevel, DateTimeOffset updatedAt)
     {
+        if (!Enum.IsDefined(trustLevel)) throw new DomainRuleViolationException($"Invalid TrustLevel: '{trustLevel}'.");
+
         TrustLevel = trustLevel;
         UpdatedAt = updatedAt;
     }
@@ -65,8 +84,14 @@ public sealed class KnowledgeSource
     {
         if (string.IsNullOrWhiteSpace(name)) throw new DomainRuleViolationException("KnowledgeSource name cannot be null or whitespace.");
 
+        var trimmedUrl = url?.Trim() ?? string.Empty;
+        if (!string.IsNullOrEmpty(trimmedUrl) && !Uri.TryCreate(trimmedUrl, UriKind.Absolute, out _))
+        {
+            throw new DomainRuleViolationException("KnowledgeSource Url must be a valid absolute URI if provided.");
+        }
+
         Name = name.Trim();
-        Url = url?.Trim() ?? string.Empty;
+        Url = trimmedUrl;
         Description = description?.Trim() ?? string.Empty;
         UpdatedAt = updatedAt;
     }
