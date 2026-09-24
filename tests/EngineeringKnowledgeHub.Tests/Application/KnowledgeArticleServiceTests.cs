@@ -15,6 +15,8 @@ public class KnowledgeArticleServiceTests
     private readonly InMemoryKnowledgeTagRepository _tagRepo = new();
     private readonly InMemoryProductRepository _productRepo = new();
     private readonly InMemoryTechnologyRepository _techRepo = new();
+    private readonly InMemoryAuditLogRepository _auditRepo = new();
+    private readonly InMemoryKnowledgeVersionRepository _versionRepo = new();
     private readonly FakeDateTimeProvider _dateTimeProvider;
     private readonly KnowledgeArticleService _service;
 
@@ -32,7 +34,9 @@ public class KnowledgeArticleServiceTests
             _tagRepo,
             _productRepo,
             _techRepo,
-            _dateTimeProvider);
+            _dateTimeProvider,
+            _auditRepo,
+            _versionRepo);
 
         // Seed default knowledge type
         _typeRepo.AddAsync(new KnowledgeType(_knowledgeTypeId, "Troubleshooting", "Troubleshooting guide")).Wait();

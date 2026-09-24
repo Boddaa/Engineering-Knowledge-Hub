@@ -14,8 +14,8 @@ public sealed class KnowledgeArticleService(
     IProductRepository productRepository,
     ITechnologyRepository technologyRepository,
     IDateTimeProvider dateTimeProvider,
-    IAuditLogRepository? auditLogRepository = null,
-    IKnowledgeVersionRepository? versionRepository = null) : IKnowledgeArticleService
+    IAuditLogRepository auditLogRepository,
+    IKnowledgeVersionRepository versionRepository) : IKnowledgeArticleService
 {
     public async Task<KnowledgeArticleDto> CreateArticleAsync(
         CreateKnowledgeArticleCommand command,
@@ -136,21 +136,18 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
-        if (auditLogRepository is not null)
-        {
-            var actor = submitterId != Guid.Empty ? submitterId : article.AuthorId;
-            var now = dateTimeProvider.UtcNow;
-            var audit = new AuditLog(
-                Guid.NewGuid(),
-                actor,
-                GovernanceAuditActions.ArticleSubmittedForReview,
-                nameof(KnowledgeArticle),
-                article.Id,
-                "Article submitted for review.",
-                now);
+        var actor = submitterId != Guid.Empty ? submitterId : article.AuthorId;
+        var now = dateTimeProvider.UtcNow;
+        var audit = new AuditLog(
+            Guid.NewGuid(),
+            actor,
+            GovernanceAuditActions.ArticleSubmittedForReview,
+            nameof(KnowledgeArticle),
+            article.Id,
+            "Article submitted for review.",
+            now);
 
-            await auditLogRepository.AddAsync(audit, cancellationToken);
-        }
+        await auditLogRepository.AddAsync(audit, cancellationToken);
 
         return KnowledgeArticleDto.FromDomain(article);
     }
@@ -172,51 +169,48 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
-        if (auditLogRepository is not null)
-        {
-            var audit = new AuditLog(
-                Guid.NewGuid(),
-                command.ReviewerId,
-                GovernanceAuditActions.ArticleApproved,
-                nameof(KnowledgeArticle),
-                article.Id,
-                $"Article approved by reviewer '{command.ReviewerId}'.",
-                now);
+        var audit = new AuditLog(
+            Guid.NewGuid(),
+            command.ReviewerId,
+            GovernanceAuditActions.ArticleApproved,
+            nameof(KnowledgeArticle),
+            article.Id,
+            $"Article approved by reviewer '{command.ReviewerId}'.",
+            now);
 
-            await auditLogRepository.AddAsync(audit, cancellationToken);
+        await auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var latest = await versionRepository.GetLatestVersionNumberAsync(article.Id, cancellationToken);
+        var nextVersion = latest + 1;
+
+        if (await versionRepository.ExistsAsync(article.Id, nextVersion, cancellationToken))
+        {
+            throw new ConflictException($"Version {nextVersion} already exists for article '{article.Id}'.");
         }
 
-        if (versionRepository is not null && command.CreateVersion)
-        {
-            var latest = await versionRepository.GetLatestVersionNumberAsync(article.Id, cancellationToken);
-            var nextVersion = latest + 1;
-            var changeSummary = string.IsNullOrWhiteSpace(command.ChangeSummary) ? "Approved and published." : command.ChangeSummary.Trim();
-            var version = new KnowledgeVersion(
-                Guid.NewGuid(),
-                article.Id,
-                nextVersion,
-                article.Title,
-                article.Content,
-                command.ReviewerId,
-                changeSummary,
-                now);
+        var changeSummary = string.IsNullOrWhiteSpace(command.ChangeSummary) ? "Approved and published." : command.ChangeSummary.Trim();
+        var version = new KnowledgeVersion(
+            Guid.NewGuid(),
+            article.Id,
+            nextVersion,
+            article.Title,
+            article.Content,
+            command.ReviewerId,
+            changeSummary,
+            now);
 
-            await versionRepository.AddAsync(version, cancellationToken);
+        await versionRepository.AddAsync(version, cancellationToken);
 
-            if (auditLogRepository is not null)
-            {
-                var versionAudit = new AuditLog(
-                    Guid.NewGuid(),
-                    command.ReviewerId,
-                    GovernanceAuditActions.KnowledgeVersionCreated,
-                    nameof(KnowledgeVersion),
-                    version.Id,
-                    $"Version {version.VersionNumber} created for article '{article.Id}'.",
-                    now);
+        var versionAudit = new AuditLog(
+            Guid.NewGuid(),
+            command.ReviewerId,
+            GovernanceAuditActions.KnowledgeVersionCreated,
+            nameof(KnowledgeVersion),
+            version.Id,
+            $"Version {version.VersionNumber} created for article '{article.Id}'.",
+            now);
 
-                await auditLogRepository.AddAsync(versionAudit, cancellationToken);
-            }
-        }
+        await auditLogRepository.AddAsync(versionAudit, cancellationToken);
 
         return KnowledgeArticleDto.FromDomain(article);
     }
@@ -238,19 +232,16 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
-        if (auditLogRepository is not null)
-        {
-            var audit = new AuditLog(
-                Guid.NewGuid(),
-                command.ReviewerId,
-                GovernanceAuditActions.ArticleRejected,
-                nameof(KnowledgeArticle),
-                article.Id,
-                $"Article rejected by reviewer '{command.ReviewerId}'.",
-                now);
+        var audit = new AuditLog(
+            Guid.NewGuid(),
+            command.ReviewerId,
+            GovernanceAuditActions.ArticleRejected,
+            nameof(KnowledgeArticle),
+            article.Id,
+            $"Article rejected by reviewer '{command.ReviewerId}'.",
+            now);
 
-            await auditLogRepository.AddAsync(audit, cancellationToken);
-        }
+        await auditLogRepository.AddAsync(audit, cancellationToken);
 
         return KnowledgeArticleDto.FromDomain(article);
     }
@@ -274,21 +265,18 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
-        if (auditLogRepository is not null)
-        {
-            var actor = actorId != Guid.Empty ? actorId : (article.ReviewerId ?? article.AuthorId);
-            var now = dateTimeProvider.UtcNow;
-            var audit = new AuditLog(
-                Guid.NewGuid(),
-                actor,
-                GovernanceAuditActions.ArticleDeprecated,
-                nameof(KnowledgeArticle),
-                article.Id,
-                $"Article deprecated by actor '{actor}'.",
-                now);
+        var actor = actorId != Guid.Empty ? actorId : (article.ReviewerId ?? article.AuthorId);
+        var now = dateTimeProvider.UtcNow;
+        var audit = new AuditLog(
+            Guid.NewGuid(),
+            actor,
+            GovernanceAuditActions.ArticleDeprecated,
+            nameof(KnowledgeArticle),
+            article.Id,
+            $"Article deprecated by actor '{actor}'.",
+            now);
 
-            await auditLogRepository.AddAsync(audit, cancellationToken);
-        }
+        await auditLogRepository.AddAsync(audit, cancellationToken);
 
         return KnowledgeArticleDto.FromDomain(article);
     }
@@ -312,21 +300,18 @@ public sealed class KnowledgeArticleService(
 
         await articleRepository.UpdateAsync(article, cancellationToken);
 
-        if (auditLogRepository is not null)
-        {
-            var actor = actorId != Guid.Empty ? actorId : article.AuthorId;
-            var now = dateTimeProvider.UtcNow;
-            var audit = new AuditLog(
-                Guid.NewGuid(),
-                actor,
-                GovernanceAuditActions.ArticleArchived,
-                nameof(KnowledgeArticle),
-                article.Id,
-                $"Article archived by actor '{actor}'.",
-                now);
+        var actor = actorId != Guid.Empty ? actorId : article.AuthorId;
+        var now = dateTimeProvider.UtcNow;
+        var audit = new AuditLog(
+            Guid.NewGuid(),
+            actor,
+            GovernanceAuditActions.ArticleArchived,
+            nameof(KnowledgeArticle),
+            article.Id,
+            $"Article archived by actor '{actor}'.",
+            now);
 
-            await auditLogRepository.AddAsync(audit, cancellationToken);
-        }
+        await auditLogRepository.AddAsync(audit, cancellationToken);
 
         return KnowledgeArticleDto.FromDomain(article);
     }

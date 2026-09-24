@@ -37,7 +37,9 @@ public class IncidentServiceTests
             new InMemoryKnowledgeTagRepository(),
             new InMemoryProductRepository(),
             new InMemoryTechnologyRepository(),
-            _dateTimeProvider);
+            _dateTimeProvider,
+            new InMemoryAuditLogRepository(),
+            new InMemoryKnowledgeVersionRepository());
 
         _incidentService = new IncidentService(
             _incidentRepository,

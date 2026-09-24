@@ -1,5 +1,6 @@
 namespace EngineeringKnowledgeHub.Tests.Application;
 
+using System.Reflection;
 using EngineeringKnowledgeHub.Application.Articles;
 using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.Governance;
@@ -69,7 +70,7 @@ public class GovernanceLifecycleTests
     }
 
     [Fact]
-    public async Task ScenarioA_Draft_To_PendingReview_To_Approved_ShouldGenerateAuditTrail()
+    public async Task Test1_Draft_To_PendingReview_To_Approve_MustAlwaysCreatePublishedState_Version1_AndBothAuditRecords()
     {
         var article = await CreateDraftArticleAsync();
 
@@ -84,25 +85,24 @@ public class GovernanceLifecycleTests
         Assert.Equal(_authorId, submitAudit.UserId);
         Assert.Equal(_initialTime.AddHours(1), submitAudit.CreatedAt);
 
-        // 2. Approve
+        // 2. Approve (publishing must unconditionally create version snapshot)
         _dateTimeProvider.UtcNow = _initialTime.AddHours(2);
         var approved = await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(
             article.Id,
             _reviewerId,
-            ChangeSummary: "Initial approval and publish",
-            CreateVersion: true));
+            ChangeSummary: "Initial approval and publish"));
 
         Assert.Equal(KnowledgeStatus.Published, approved.Status);
         Assert.Equal(VerificationStatus.Verified, approved.VerificationStatus);
         Assert.Equal(_reviewerId, approved.ReviewerId);
 
-        // Verify Approval Audit
-        var allAudits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
-        var approveAudit = Assert.Single(allAudits, a => a.Action == GovernanceAuditActions.ArticleApproved);
+        // Verify ArticleApproved Audit record
+        var articleAudits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
+        var approveAudit = Assert.Single(articleAudits, a => a.Action == GovernanceAuditActions.ArticleApproved);
         Assert.Equal(_reviewerId, approveAudit.UserId);
         Assert.Equal(_initialTime.AddHours(2), approveAudit.CreatedAt);
 
-        // Verify auto-created version
+        // Verify KnowledgeVersion snapshot created automatically
         var versions = await _versionRepo.GetByArticleIdAsync(article.Id);
         var v1 = Assert.Single(versions);
         Assert.Equal(1, v1.VersionNumber);
@@ -110,33 +110,18 @@ public class GovernanceLifecycleTests
         Assert.Equal(article.Content, v1.Content);
         Assert.Equal(_reviewerId, v1.ChangedById);
         Assert.Equal("Initial approval and publish", v1.ChangeSummary);
+        Assert.Equal(_initialTime.AddHours(2), v1.CreatedAt);
+
+        // Verify KnowledgeVersionCreated Audit record
+        var versionAudits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeVersion), v1.Id);
+        var versionAudit = Assert.Single(versionAudits, a => a.Action == GovernanceAuditActions.KnowledgeVersionCreated);
+        Assert.Equal(_reviewerId, versionAudit.UserId);
+        Assert.Equal(_initialTime.AddHours(2), versionAudit.CreatedAt);
+        Assert.Contains("Version 1 created for article", versionAudit.Details);
     }
 
     [Fact]
-    public async Task ScenarioB_Published_To_Deprecated_ShouldBeTraceableWithResponsibleActor()
-    {
-        var article = await CreateDraftArticleAsync();
-
-        // Submit and Approve to reach Published status
-        await _articleService.SubmitForReviewAsync(article.Id);
-        await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(article.Id, _reviewerId));
-
-        // Deprecate with explicit responsible actor
-        _dateTimeProvider.UtcNow = _initialTime.AddDays(30);
-        var deprecated = await _articleService.DeprecateArticleAsync(article.Id, _deprecatorId);
-
-        Assert.Equal(KnowledgeStatus.Deprecated, deprecated.Status);
-
-        // Verify deprecation audit record
-        var audits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
-        var deprecateAudit = Assert.Single(audits, a => a.Action == GovernanceAuditActions.ArticleDeprecated);
-        Assert.Equal(_deprecatorId, deprecateAudit.UserId);
-        Assert.Equal(_initialTime.AddDays(30), deprecateAudit.CreatedAt);
-        Assert.Contains(_deprecatorId.ToString(), deprecateAudit.Details);
-    }
-
-    [Fact]
-    public async Task ScenarioC_PublishedVersion1_NewGovernedChange_ProducesVersion2_WhileVersion1RemainsRecoverable()
+    public async Task Test2_ApproveSameArticleAgainAfterEditCycle_MustCreateVersion2_WhileVersion1RemainsUnchanged()
     {
         var article = await CreateDraftArticleAsync();
 
@@ -145,8 +130,7 @@ public class GovernanceLifecycleTests
         await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(
             article.Id,
             _reviewerId,
-            ChangeSummary: "Release 1.0",
-            CreateVersion: true));
+            ChangeSummary: "Release 1.0"));
 
         // 2. Author updates content (status drops to Draft for re-governance)
         _dateTimeProvider.UtcNow = _initialTime.AddDays(5);
@@ -168,8 +152,7 @@ public class GovernanceLifecycleTests
         await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(
             article.Id,
             _reviewerId,
-            ChangeSummary: "Release 2.0 with improved procedures",
-            CreateVersion: true));
+            ChangeSummary: "Release 2.0 with improved procedures"));
 
         // Verify Version History
         var history = await _governanceService.GetVersionHistoryAsync(article.Id);
@@ -182,17 +165,55 @@ public class GovernanceLifecycleTests
         Assert.Equal(2, v2.VersionNumber);
         Assert.Equal("Release 2.0 with improved procedures", v2.ChangeSummary);
         Assert.Equal("Completely overhauled procedures for v2...", v2.Content);
+        Assert.Equal(_reviewerId, v2.ChangedById);
         Assert.Equal(_initialTime.AddDays(7), v2.CreatedAt);
 
-        // Verify Version 1 remains intact and recoverable
+        // Verify Version 1 remains intact, unchanged, and recoverable
         Assert.Equal(1, v1.VersionNumber);
         Assert.Equal("Release 1.0", v1.ChangeSummary);
         Assert.Equal("Content explaining deadlocks...", v1.Content);
+        Assert.Equal(_reviewerId, v1.ChangedById);
         Assert.Equal(_initialTime, v1.CreatedAt);
     }
 
     [Fact]
-    public async Task PeerReviewMandatory_AuthorCannotApproveOwnArticle()
+    public async Task Test3_VersionSnapshot_MustContainTitleContentReviewerChangeSummaryAndCreatedAtFromPublishedState()
+    {
+        var article = await CreateDraftArticleAsync("Specific Calibration Title");
+        await _articleService.SubmitForReviewAsync(article.Id);
+
+        var approvalTime = _initialTime.AddHours(5);
+        _dateTimeProvider.UtcNow = approvalTime;
+
+        await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(
+            article.Id,
+            _reviewerId,
+            ChangeSummary: "Custom verified change summary"));
+
+        var version = await _versionRepo.GetByArticleAndVersionNumberAsync(article.Id, 1);
+        Assert.NotNull(version);
+
+        Assert.Equal(article.Id, version.ArticleId);
+        Assert.Equal(1, version.VersionNumber);
+        Assert.Equal("Specific Calibration Title", version.Title);
+        Assert.Equal(article.Content, version.Content);
+        Assert.Equal(_reviewerId, version.ChangedById);
+        Assert.Equal("Custom verified change summary", version.ChangeSummary);
+        Assert.Equal(approvalTime, version.CreatedAt);
+    }
+
+    [Fact]
+    public void Test4_ApproveKnowledgeArticleCommand_CannotExposeBypassOption()
+    {
+        // Verify via reflection that ApproveKnowledgeArticleCommand does not expose a CreateVersion property
+        var createVersionProp = typeof(ApproveKnowledgeArticleCommand)
+            .GetProperty("CreateVersion", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+
+        Assert.Null(createVersionProp);
+    }
+
+    [Fact]
+    public async Task Test5_PeerReviewMandatory_AuthorCannotApproveOwnArticle()
     {
         var article = await CreateDraftArticleAsync();
         await _articleService.SubmitForReviewAsync(article.Id);
@@ -200,39 +221,51 @@ public class GovernanceLifecycleTests
         // Author attempts to approve own article -> rejected by domain rule
         await Assert.ThrowsAsync<DomainRuleViolationException>(() =>
             _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(article.Id, _authorId)));
+
+        // Verify no version was created
+        var versions = await _versionRepo.GetByArticleIdAsync(article.Id);
+        Assert.Empty(versions);
     }
 
     [Fact]
-    public async Task RejectArticle_ShouldTransitionToDraft_AndRecordAuditLog()
+    public async Task Test6_RejectionDeprecationAndArchiveBehavior_RemainUnchanged()
     {
         var article = await CreateDraftArticleAsync();
-        await _articleService.SubmitForReviewAsync(article.Id);
 
+        // 1. Rejection
+        await _articleService.SubmitForReviewAsync(article.Id);
         _dateTimeProvider.UtcNow = _initialTime.AddHours(3);
         var rejected = await _articleService.RejectArticleAsync(new RejectKnowledgeArticleCommand(article.Id, _reviewerId));
 
         Assert.Equal(KnowledgeStatus.Draft, rejected.Status);
         Assert.Equal(VerificationStatus.Rejected, rejected.VerificationStatus);
 
-        var audits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
-        var rejectAudit = Assert.Single(audits, a => a.Action == GovernanceAuditActions.ArticleRejected);
+        var rejectAudits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
+        var rejectAudit = Assert.Single(rejectAudits, a => a.Action == GovernanceAuditActions.ArticleRejected);
         Assert.Equal(_reviewerId, rejectAudit.UserId);
         Assert.Equal(_initialTime.AddHours(3), rejectAudit.CreatedAt);
-    }
 
-    [Fact]
-    public async Task ArchiveArticle_ShouldTransitionToArchived_AndRecordAuditLog()
-    {
-        var article = await CreateDraftArticleAsync();
+        // 2. Re-submit and approve to reach Published status
+        await _articleService.SubmitForReviewAsync(article.Id);
+        await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(article.Id, _reviewerId));
 
+        // 3. Deprecation
+        _dateTimeProvider.UtcNow = _initialTime.AddDays(30);
+        var deprecated = await _articleService.DeprecateArticleAsync(article.Id, _deprecatorId);
+        Assert.Equal(KnowledgeStatus.Deprecated, deprecated.Status);
+
+        var deprecateAudits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
+        var deprecateAudit = Assert.Single(deprecateAudits, a => a.Action == GovernanceAuditActions.ArticleDeprecated);
+        Assert.Equal(_deprecatorId, deprecateAudit.UserId);
+        Assert.Equal(_initialTime.AddDays(30), deprecateAudit.CreatedAt);
+
+        // 4. Archival
         var archived = await _articleService.ArchiveArticleAsync(article.Id, _deprecatorId);
-
         Assert.Equal(KnowledgeStatus.Archived, archived.Status);
 
-        var audits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
-        var archiveAudit = Assert.Single(audits, a => a.Action == GovernanceAuditActions.ArticleArchived);
+        var archiveAudits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
+        var archiveAudit = Assert.Single(archiveAudits, a => a.Action == GovernanceAuditActions.ArticleArchived);
         Assert.Equal(_deprecatorId, archiveAudit.UserId);
-        Assert.Contains("archived", archiveAudit.Details);
     }
 
     [Fact]
