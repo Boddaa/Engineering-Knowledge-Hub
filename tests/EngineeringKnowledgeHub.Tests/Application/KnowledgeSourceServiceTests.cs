@@ -41,15 +41,14 @@ public class KnowledgeSourceServiceTests
     }
 
     [Fact]
-    public async Task CreateSourceAsync_With_Valid_Command_Should_Create_And_Return_Dto()
+    public async Task CreateSourceAsync_With_Valid_Command_Should_Create_With_IsApproved_False()
     {
         var command = new CreateKnowledgeSourceCommand(
             "Hardware Vendor Manual",
             SourceType.VendorDocumentation,
             "https://vendor.example.com/manual",
             "Official documentation",
-            TrustLevel.Official,
-            true);
+            TrustLevel.Official);
 
         var result = await _service.CreateSourceAsync(command);
 
@@ -59,11 +58,33 @@ public class KnowledgeSourceServiceTests
         Assert.Equal("https://vendor.example.com/manual", result.Url);
         Assert.Equal("Official documentation", result.Description);
         Assert.Equal(TrustLevel.Official, result.TrustLevel);
-        Assert.True(result.IsApproved);
+        Assert.False(result.IsApproved);
         Assert.Equal(_dateTimeProvider.UtcNow, result.CreatedAt);
 
         var persisted = await _sourceRepository.GetByIdAsync(result.Id);
         Assert.NotNull(persisted);
+        Assert.False(persisted.IsApproved);
+    }
+
+    [Fact]
+    public async Task CreateSourceAsync_Then_ApproveSourceAsync_Should_Achieve_Approval()
+    {
+        var command = new CreateKnowledgeSourceCommand(
+            "Vendor Manual for Approval",
+            SourceType.VendorDocumentation,
+            "https://vendor.example.com/manual-approval",
+            "Official documentation",
+            TrustLevel.Official);
+
+        var created = await _service.CreateSourceAsync(command);
+        Assert.False(created.IsApproved);
+
+        var approved = await _service.ApproveSourceAsync(created.Id);
+        Assert.True(approved.IsApproved);
+
+        var persisted = await _sourceRepository.GetByIdAsync(created.Id);
+        Assert.NotNull(persisted);
+        Assert.True(persisted.IsApproved);
     }
 
     [Fact]

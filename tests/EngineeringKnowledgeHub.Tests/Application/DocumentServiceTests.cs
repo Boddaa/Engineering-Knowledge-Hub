@@ -239,4 +239,112 @@ public class DocumentServiceTests
         await Assert.ThrowsAsync<NotFoundException>(() =>
             _service.ProcessDocumentAsync(processCmd));
     }
+
+    [Fact]
+    public async Task ProcessDocumentAsync_When_Extractor_Throws_Should_Mark_Failed_With_Sanitized_Reason()
+    {
+        var faultyExtractor = new FaultyTextExtractor { ThrowException = true };
+        var service = new DocumentService(
+            _documentRepository,
+            _sourceRepository,
+            _fileHasher,
+            faultyExtractor,
+            _dateTimeProvider);
+
+        var source = await CreateSampleSourceAsync();
+        var uploadCmd = new UploadDocumentCommand("corrupt.txt", "text/plain", source.Id, Guid.NewGuid(), Encoding.UTF8.GetBytes("corrupt content"));
+        var uploaded = await service.UploadDocumentAsync(uploadCmd);
+
+        var processCmd = new ProcessDocumentCommand(uploaded.Id, Encoding.UTF8.GetBytes("corrupt content"));
+        var failed = await service.ProcessDocumentAsync(processCmd);
+
+        Assert.Equal(DocumentProcessingStatus.Failed, failed.ProcessingStatus);
+        Assert.Equal("Document extraction failed due to an unexpected processing error.", failed.FailureReason);
+        Assert.DoesNotContain("Raw sensitive", failed.FailureReason);
+
+        var persisted = await _documentRepository.GetByIdAsync(uploaded.Id);
+        Assert.Equal(DocumentProcessingStatus.Failed, persisted!.ProcessingStatus);
+        Assert.Equal("Document extraction failed due to an unexpected processing error.", persisted.FailureReason);
+    }
+
+    [Fact]
+    public async Task ProcessDocumentAsync_When_Cancelled_Should_Propagate_And_Not_Mark_Document_As_Failed()
+    {
+        var faultyExtractor = new FaultyTextExtractor { ThrowCancellation = true };
+        var service = new DocumentService(
+            _documentRepository,
+            _sourceRepository,
+            _fileHasher,
+            faultyExtractor,
+            _dateTimeProvider);
+
+        var source = await CreateSampleSourceAsync();
+        var uploadCmd = new UploadDocumentCommand("cancel.txt", "text/plain", source.Id, Guid.NewGuid(), Encoding.UTF8.GetBytes("data"));
+        var uploaded = await service.UploadDocumentAsync(uploadCmd);
+
+        var processCmd = new ProcessDocumentCommand(uploaded.Id, Encoding.UTF8.GetBytes("data"));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            service.ProcessDocumentAsync(processCmd));
+
+        var persisted = await _documentRepository.GetByIdAsync(uploaded.Id);
+        Assert.NotNull(persisted);
+        Assert.NotEqual(DocumentProcessingStatus.Failed, persisted.ProcessingStatus);
+        Assert.Null(persisted.FailureReason);
+    }
+
+    [Fact]
+    public async Task ProcessDocumentAsync_When_Failed_Should_Allow_Retry_To_Success()
+    {
+        var faultyExtractor = new FaultyTextExtractor { ThrowException = true };
+        var service = new DocumentService(
+            _documentRepository,
+            _sourceRepository,
+            _fileHasher,
+            faultyExtractor,
+            _dateTimeProvider);
+
+        var source = await CreateSampleSourceAsync();
+        var uploadCmd = new UploadDocumentCommand("retry.txt", "text/plain", source.Id, Guid.NewGuid(), Encoding.UTF8.GetBytes("content"));
+        var uploaded = await service.UploadDocumentAsync(uploadCmd);
+
+        var processCmd = new ProcessDocumentCommand(uploaded.Id, Encoding.UTF8.GetBytes("content"));
+        var failed = await service.ProcessDocumentAsync(processCmd);
+        Assert.Equal(DocumentProcessingStatus.Failed, failed.ProcessingStatus);
+
+        // Fix the issue and retry
+        faultyExtractor.ThrowException = false;
+        var retried = await service.ProcessDocumentAsync(processCmd);
+
+        Assert.Equal(DocumentProcessingStatus.Processed, retried.ProcessingStatus);
+        Assert.Equal("Extracted text", retried.ExtractedText);
+        Assert.Null(retried.FailureReason);
+
+        var persisted = await _documentRepository.GetByIdAsync(uploaded.Id);
+        Assert.Equal(DocumentProcessingStatus.Processed, persisted!.ProcessingStatus);
+        Assert.Null(persisted.FailureReason);
+    }
+
+    private class FaultyTextExtractor : EngineeringKnowledgeHub.Application.Common.Interfaces.IDocumentTextExtractor
+    {
+        public bool ThrowCancellation { get; set; }
+        public bool ThrowException { get; set; }
+
+        public bool CanExtract(string contentType, string fileName) => true;
+
+        public Task<string> ExtractTextAsync(Stream contentStream, string contentType, CancellationToken cancellationToken = default)
+        {
+            if (ThrowCancellation)
+            {
+                throw new OperationCanceledException(cancellationToken);
+            }
+
+            if (ThrowException)
+            {
+                throw new InvalidOperationException("Raw sensitive internal exception details with database path");
+            }
+
+            return Task.FromResult("Extracted text");
+        }
+    }
 }

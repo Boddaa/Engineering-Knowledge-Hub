@@ -51,7 +51,7 @@ public sealed class KnowledgeSourceService(
             command.Url,
             command.Description,
             command.TrustLevel,
-            command.IsApproved);
+            isApproved: false);
 
         await sourceRepository.AddAsync(source, cancellationToken);
 

@@ -7,8 +7,7 @@ public sealed record CreateKnowledgeSourceCommand(
     SourceType SourceType,
     string? Url = null,
     string? Description = null,
-    TrustLevel TrustLevel = TrustLevel.Untrusted,
-    bool IsApproved = false);
+    TrustLevel TrustLevel = TrustLevel.Untrusted);
 
 public sealed record UpdateKnowledgeSourceCommand(
     Guid Id,

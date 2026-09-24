@@ -142,9 +142,13 @@ public sealed class DocumentService(
                 document.MarkFailed("Document content is not available for processing.", now);
             }
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            document.MarkFailed($"Extraction failed: {ex.Message}", now);
+            throw;
+        }
+        catch (Exception)
+        {
+            document.MarkFailed("Document extraction failed due to an unexpected processing error.", now);
         }
 
         await documentRepository.UpdateAsync(document, cancellationToken);
