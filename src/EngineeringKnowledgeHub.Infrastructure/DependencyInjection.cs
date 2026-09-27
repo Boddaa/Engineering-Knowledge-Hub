@@ -2,11 +2,15 @@ namespace EngineeringKnowledgeHub.Infrastructure;
 
 using EngineeringKnowledgeHub.Application;
 using EngineeringKnowledgeHub.Application.Ai;
+using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Application.Enrichment;
 using EngineeringKnowledgeHub.Application.Rag;
 using EngineeringKnowledgeHub.Application.SemanticSearch;
 using EngineeringKnowledgeHub.Infrastructure.Enrichment;
 using EngineeringKnowledgeHub.Infrastructure.LocalAi;
+using EngineeringKnowledgeHub.Infrastructure.Persistence;
+using EngineeringKnowledgeHub.Infrastructure.Persistence.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -17,6 +21,35 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // 0. Persistence Foundation (EF Core + SQL Server)
+        services.AddDbContext<AppDbContext>((_, options) =>
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "SQL Server connection string 'DefaultConnection' was not found. " +
+                    "Configure 'ConnectionStrings:DefaultConnection' in configuration or environment variables.");
+            }
+
+            options.UseSqlServer(connectionString);
+        });
+
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        services.AddScoped<IKnowledgeArticleRepository, KnowledgeArticleRepository>();
+        services.AddScoped<IKnowledgeVersionRepository, KnowledgeVersionRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<IDocumentRepository, DocumentRepository>();
+        services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();
+        services.AddScoped<IIncidentRepository, IncidentRepository>();
+        services.AddScoped<IKnowledgeFeedbackRepository, KnowledgeFeedbackRepository>();
+        services.AddScoped<IKnowledgeSourceRepository, KnowledgeSourceRepository>();
+        services.AddScoped<IKnowledgeCategoryRepository, KnowledgeCategoryRepository>();
+        services.AddScoped<IKnowledgeTagRepository, KnowledgeTagRepository>();
+        services.AddScoped<IKnowledgeTypeRepository, KnowledgeTypeRepository>();
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<ITechnologyRepository, TechnologyRepository>();
+
         // 1. External Knowledge Enrichment HTTP client (Phase 9)
         services.AddHttpClient<IExternalKnowledgeProvider, HttpExternalKnowledgeProvider>()
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler

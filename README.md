@@ -55,6 +55,7 @@ EngineeringKnowledgeHub/
 
 ## Technology Stack
 * **Runtime & Framework**: .NET 10 (C# 14) / ASP.NET Core
+* **Persistence & ORM**: Entity Framework Core 10 (`Microsoft.EntityFrameworkCore.SqlServer`), Microsoft SQL Server
 * **Structured Logging**: Serilog (`Serilog.AspNetCore`)
 * **API Documentation**: OpenAPI / Swagger (`Swashbuckle.AspNetCore`, `Microsoft.AspNetCore.OpenApi`)
 * **Diagnostics & Health**: ASP.NET Core Health Checks, RFC 7807 Problem Details
@@ -62,7 +63,43 @@ EngineeringKnowledgeHub/
 
 ## Development Requirements
 * [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (Version 10.0.100 or newer)
+* Microsoft SQL Server (LocalDB `(localdb)\mssqllocaldb`, SQL Server Express, or Developer edition)
 * Modern IDE or editor (Visual Studio 2025+, Visual Studio Code with C# Dev Kit, or JetBrains Rider)
+
+## Database & Persistence Setup
+
+The application uses Entity Framework Core with Microsoft SQL Server for relational persistence.
+
+### Configuration
+Configure your SQL Server connection string in `src/EngineeringKnowledgeHub.Api/appsettings.json` (or environment variables / user secrets):
+
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=EngineeringKnowledgeHubDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+}
+```
+
+The application strictly verifies the presence of the connection string and fails fast with a clear error message if it is missing.
+
+### Local Development Database (LocalDB)
+If using SQL Server LocalDB on Windows, ensure the instance is running:
+
+```bash
+sqllocaldb start MSSQLLocalDB
+```
+
+### Applying Migrations
+To apply the initial schema and future migrations to the configured database:
+
+```bash
+dotnet ef database update --project src/EngineeringKnowledgeHub.Infrastructure --startup-project src/EngineeringKnowledgeHub.Api
+```
+
+To generate a new migration:
+
+```bash
+dotnet ef migrations add <MigrationName> --project src/EngineeringKnowledgeHub.Infrastructure --startup-project src/EngineeringKnowledgeHub.Api --output-dir Persistence/Migrations
+```
 
 ## Running the API
 To run the API locally using standard .NET CLI tooling:

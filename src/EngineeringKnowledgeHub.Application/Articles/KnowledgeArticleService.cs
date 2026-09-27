@@ -15,7 +15,8 @@ public sealed class KnowledgeArticleService(
     ITechnologyRepository technologyRepository,
     IDateTimeProvider dateTimeProvider,
     IAuditLogRepository auditLogRepository,
-    IKnowledgeVersionRepository versionRepository) : IKnowledgeArticleService
+    IKnowledgeVersionRepository versionRepository,
+    IUnitOfWork? unitOfWork = null) : IKnowledgeArticleService
 {
     public async Task<KnowledgeArticleDto> CreateArticleAsync(
         CreateKnowledgeArticleCommand command,
@@ -161,6 +162,18 @@ public sealed class KnowledgeArticleService(
         if (command.ArticleId == Guid.Empty) throw new ValidationException("ArticleId is required.");
         if (command.ReviewerId == Guid.Empty) throw new ValidationException("ReviewerId is required.");
 
+        if (unitOfWork is not null)
+        {
+            return await unitOfWork.ExecuteTransactionAsync(ct => ExecuteApproveCoreAsync(command, ct), cancellationToken);
+        }
+
+        return await ExecuteApproveCoreAsync(command, cancellationToken);
+    }
+
+    private async Task<KnowledgeArticleDto> ExecuteApproveCoreAsync(
+        ApproveKnowledgeArticleCommand command,
+        CancellationToken cancellationToken)
+    {
         var article = await articleRepository.GetByIdAsync(command.ArticleId, cancellationToken)
             ?? throw new NotFoundException("KnowledgeArticle", command.ArticleId);
 

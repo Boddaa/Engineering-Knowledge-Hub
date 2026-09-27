@@ -20,6 +20,7 @@ try
         .WriteTo.Console());
 
     // Register layers
+    builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
     // Register API components
