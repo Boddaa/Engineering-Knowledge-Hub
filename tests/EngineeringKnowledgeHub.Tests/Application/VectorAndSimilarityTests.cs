@@ -112,4 +112,15 @@ public class VectorAndSimilarityTests
         Assert.False(v1.Equals(v3));
         Assert.Equal(v1.GetHashCode(), v2.GetHashCode());
     }
+
+    [Fact]
+    public void Vector_EqualVectors_MustProduceIdenticalHashCodes()
+    {
+        var v1 = new Vector([0.12345f, -0.6789f, 42.0f, 0.0f]);
+        var v2 = new Vector([0.12345f, -0.6789f, 42.0f, 0.0f]);
+
+        Assert.True(v1.Equals(v2));
+        Assert.True(v2.Equals(v1));
+        Assert.Equal(v1.GetHashCode(), v2.GetHashCode());
+    }
 }

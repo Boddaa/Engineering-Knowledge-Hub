@@ -98,7 +98,7 @@ public sealed class Vector : IEquatable<Vector>
 
         for (int i = 0; i < _values.Length; i++)
         {
-            if (Math.Abs(_values[i] - other._values[i]) > 1e-6f)
+            if (_values[i] != other._values[i])
             {
                 return false;
             }
@@ -112,11 +112,11 @@ public sealed class Vector : IEquatable<Vector>
     public override int GetHashCode()
     {
         HashCode hash = default;
-        for (int i = 0; i < Math.Min(_values.Length, 8); i++)
+        hash.Add(Dimensions);
+        for (int i = 0; i < _values.Length; i++)
         {
             hash.Add(_values[i]);
         }
-        hash.Add(Dimensions);
         return hash.ToHashCode();
     }
 

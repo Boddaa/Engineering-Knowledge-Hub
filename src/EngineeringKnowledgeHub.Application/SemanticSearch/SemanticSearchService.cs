@@ -74,9 +74,9 @@ public sealed class SemanticSearchService : ISemanticSearchService
             throw new ValidationException("Search query cannot be null or whitespace.");
         }
 
-        if (request.TopK < 1 || request.TopK > 100)
+        if (request.TopK < 1)
         {
-            throw new ValidationException("TopK must be between 1 and 100.");
+            throw new ValidationException("TopK must be greater than 0.");
         }
 
         if (request.ArticleId == Guid.Empty)
@@ -119,7 +119,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
             throw new ValidationException("Invalid verification status filter.");
         }
 
-        if (request.MinSimilarity < 0.0 || request.MinSimilarity > 1.0)
+        if (double.IsNaN(request.MinSimilarity) || double.IsInfinity(request.MinSimilarity) || request.MinSimilarity < 0.0 || request.MinSimilarity > 1.0)
         {
             throw new ValidationException("MinSimilarity must be between 0.0 and 1.0.");
         }

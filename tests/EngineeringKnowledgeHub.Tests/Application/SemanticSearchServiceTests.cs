@@ -110,11 +110,72 @@ public class SemanticSearchServiceTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    [InlineData(101)]
     public async Task SearchAsync_WithInvalidTopK_ShouldThrowValidationException(int invalidTopK)
     {
         await Assert.ThrowsAsync<ValidationException>(() =>
             _searchService.SearchAsync(new SemanticSearchRequest { Query = "Valid query", TopK = invalidTopK }));
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(0.5)]
+    [InlineData(1.0)]
+    public async Task SearchAsync_WithValidMinSimilarityBoundaries_ShouldSucceed(double validMinSimilarity)
+    {
+        var art = CreateArticle("Boundary Test Article", "Summary", "Content");
+        await _indexService.IndexArticleAsync(art);
+
+        var results = await _searchService.SearchAsync(new SemanticSearchRequest
+        {
+            Query = "Boundary Test",
+            MinSimilarity = validMinSimilarity
+        });
+
+        Assert.NotNull(results);
+    }
+
+    [Theory]
+    [InlineData(-0.01)]
+    [InlineData(-1.0)]
+    public async Task SearchAsync_WithMinSimilarityBelowZero_ShouldThrowValidationException(double invalidMinSimilarity)
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _searchService.SearchAsync(new SemanticSearchRequest
+            {
+                Query = "Valid query",
+                MinSimilarity = invalidMinSimilarity
+            }));
+    }
+
+    [Theory]
+    [InlineData(1.01)]
+    [InlineData(2.0)]
+    public async Task SearchAsync_WithMinSimilarityAboveOne_ShouldThrowValidationException(double invalidMinSimilarity)
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _searchService.SearchAsync(new SemanticSearchRequest
+            {
+                Query = "Valid query",
+                MinSimilarity = invalidMinSimilarity
+            }));
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithMinSimilarityNaNOrInfinity_ShouldThrowValidationException()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _searchService.SearchAsync(new SemanticSearchRequest
+            {
+                Query = "Valid query",
+                MinSimilarity = double.NaN
+            }));
+
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _searchService.SearchAsync(new SemanticSearchRequest
+            {
+                Query = "Valid query",
+                MinSimilarity = double.PositiveInfinity
+            }));
     }
 
     [Fact]

@@ -167,6 +167,58 @@ public class HybridSearchTests
         Assert.Null(keywordResult.Items[0].SemanticScore);
     }
 
+    [Fact]
+    public async Task HybridSearch_SemanticCandidateCompleteness_BeyondOldFixed100Limit_ShouldParticipateInHybridRanking()
+    {
+        const int totalArticles = 105;
+        var lastArticleId = Guid.Empty;
+
+        for (int i = 0; i < totalArticles; i++)
+        {
+            var art = CreateAndSaveArticle(
+                $"Diagnostic Instruction {i:D3}",
+                $"Diagnostics summary {i}",
+                "Camera telemetry diagnostics procedure guidance",
+                _typeTroubleshooting);
+
+            await _semanticIndexService.IndexArticleAsync(art);
+            if (i == totalArticles - 1)
+            {
+                lastArticleId = art.Id;
+            }
+        }
+
+        var requestPage1 = new HybridSearchArticleRequest
+        {
+            Query = "telemetry diagnostics procedure",
+            Page = 1,
+            PageSize = 100,
+            Options = new HybridSearchOptions { KeywordWeight = 0.0, SemanticWeight = 1.0, VerifiedBoost = 1.0 }
+        };
+
+        var requestPage2 = new HybridSearchArticleRequest
+        {
+            Query = "telemetry diagnostics procedure",
+            Page = 2,
+            PageSize = 100,
+            Options = new HybridSearchOptions { KeywordWeight = 0.0, SemanticWeight = 1.0, VerifiedBoost = 1.0 }
+        };
+
+        var resultPage1 = await _searchService.HybridSearchArticlesAsync(requestPage1);
+        var resultPage2 = await _searchService.HybridSearchArticlesAsync(requestPage2);
+
+        // Under old fixed TopK=100 limit, only 100 semantic candidates were retrieved, truncating 5 articles.
+        // With candidate completeness covering filteredArticles.Count (105), all 105 must participate.
+        Assert.Equal(totalArticles, resultPage1.TotalCount);
+        Assert.Equal(100, resultPage1.Items.Count);
+        Assert.Equal(5, resultPage2.Items.Count);
+
+        var lastItem = resultPage2.Items.FirstOrDefault(item => item.Id == lastArticleId);
+        Assert.NotNull(lastItem);
+        Assert.True(lastItem.SemanticScore > 0.0);
+        Assert.True(lastItem.HybridScore > 0.0);
+    }
+
     [Theory]
     [InlineData(-0.1, 0.5, 1.0)]
     [InlineData(0.5, -0.1, 1.0)]

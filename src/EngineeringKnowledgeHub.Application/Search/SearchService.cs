@@ -366,7 +366,7 @@ public sealed class SearchService : ISearchService
                 new SemanticSearchRequest
                 {
                     Query = trimmedQuery!,
-                    TopK = 100,
+                    TopK = Math.Max(1, filteredArticles.Count),
                     ProductId = request.ProductId,
                     TechnologyId = request.TechnologyId,
                     KnowledgeTypeId = request.KnowledgeTypeId,
