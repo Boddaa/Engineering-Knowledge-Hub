@@ -991,7 +991,11 @@ Retriever, context builder, AI abstraction, evidence display, answer generation.
 
 ## Phase 9: Online Enrichment
 
-Approved external sources, import/sync, provenance, review pipeline.
+Approved external sources, safe HTTP retrieval, content bounding, provenance preservation, duplicate detection, human-governed knowledge proposal boundary, and offline resilience.
+* **External enrichment is optional**: The platform operates fully offline; internet connectivity is an enrichment capability, not a dependency for core knowledge, local search, or RAG.
+* **Provenance is preserved**: Imported external material remains permanently traceable to its origin source (`SourceId`, `SourceName`, `SourceType`, `SourceUrl`, `TrustLevel`, content hash, and timestamp).
+* **External content is not automatically trusted**: External document chunks retrieved as RAG evidence retain `VerificationStatus == null` and explicit `Metadata["IsExternal"] = "true"`, preventing them from masquerading as verified internal knowledge.
+* **Human review remains authoritative**: Imported material can be proposed as a `Draft` (`Unverified`) knowledge article, strictly requiring human review before approval and publication. No autonomous AI publishing.
 
 ## Phase 10: Local AI
 

@@ -4,6 +4,7 @@ using EngineeringKnowledgeHub.Application.Articles;
 using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Application.Common.Services;
 using EngineeringKnowledgeHub.Application.Documents;
+using EngineeringKnowledgeHub.Application.Enrichment;
 using EngineeringKnowledgeHub.Application.Feedback;
 using EngineeringKnowledgeHub.Application.Governance;
 using EngineeringKnowledgeHub.Application.Incidents;
@@ -41,8 +42,10 @@ public static class ApplicationDependencyInjection
         services.AddScoped<IRagService, RagService>();
         services.AddScoped<IIncidentService, IncidentService>();
         services.AddScoped<IKnowledgeFeedbackService, KnowledgeFeedbackService>();
+        services.AddSingleton(new ExternalImportOptions());
         services.AddScoped<IKnowledgeSourceService, KnowledgeSourceService>();
         services.AddScoped<IDocumentService, DocumentService>();
+        services.AddScoped<IExternalEnrichmentService, ExternalEnrichmentService>();
 
         return services;
     }

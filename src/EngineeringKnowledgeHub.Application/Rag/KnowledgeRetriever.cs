@@ -21,19 +21,22 @@ public sealed class KnowledgeRetriever : IKnowledgeRetriever
     private readonly IIncidentRepository? _incidentRepository;
     private readonly IDocumentRepository? _documentRepository;
     private readonly IKnowledgeArticleRepository? _articleRepository;
+    private readonly IKnowledgeSourceRepository? _sourceRepository;
 
     public KnowledgeRetriever(
         ISearchService searchService,
         ISemanticSearchService? semanticSearchService = null,
         IIncidentRepository? incidentRepository = null,
         IDocumentRepository? documentRepository = null,
-        IKnowledgeArticleRepository? articleRepository = null)
+        IKnowledgeArticleRepository? articleRepository = null,
+        IKnowledgeSourceRepository? sourceRepository = null)
     {
         _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
         _semanticSearchService = semanticSearchService;
         _incidentRepository = incidentRepository;
         _documentRepository = documentRepository;
         _articleRepository = articleRepository;
+        _sourceRepository = sourceRepository;
     }
 
     public async Task<IReadOnlyList<RagEvidenceItem>> RetrieveEvidenceAsync(
@@ -116,12 +119,33 @@ public sealed class KnowledgeRetriever : IKnowledgeRetriever
                 if (sem.DocumentId.HasValue)
                 {
                     var docTitle = "Document Chunk";
+                    var metadata = new Dictionary<string, string>(sem.Metadata);
+
                     if (_documentRepository != null)
                     {
                         var doc = await _documentRepository.GetByIdAsync(sem.DocumentId.Value, cancellationToken);
                         if (doc != null)
                         {
                             docTitle = doc.FileName;
+
+                            if (_sourceRepository != null)
+                            {
+                                var source = await _sourceRepository.GetByIdAsync(doc.SourceId, cancellationToken);
+                                if (source != null)
+                                {
+                                    metadata["SourceId"] = source.Id.ToString();
+                                    metadata["SourceName"] = source.Name;
+                                    metadata["SourceType"] = source.SourceType.ToString();
+                                    metadata["TrustLevel"] = source.TrustLevel.ToString();
+                                    if (!string.IsNullOrWhiteSpace(source.Url))
+                                    {
+                                        metadata["SourceUrl"] = source.Url;
+                                    }
+                                    metadata["IsExternal"] = (source.SourceType is SourceType.External or SourceType.VendorDocumentation)
+                                        ? "true"
+                                        : "false";
+                                }
+                            }
                         }
                     }
 
@@ -134,7 +158,7 @@ public sealed class KnowledgeRetriever : IKnowledgeRetriever
                         Content: sem.Text,
                         RelevanceScore: Math.Min(1.0, sem.SimilarityScore),
                         VerificationStatus: null,
-                        Metadata: new Dictionary<string, string>(sem.Metadata)));
+                        Metadata: metadata));
                 }
             }
         }

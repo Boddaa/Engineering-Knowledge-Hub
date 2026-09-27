@@ -208,6 +208,46 @@ public class ArchitectureTests
             Assert.DoesNotContain(forbiddenTypes, forbidden => forbidden == paramType.Name);
         }
     }
+
+    [Fact]
+    public void ExternalKnowledgeProvider_And_EnrichmentService_Should_Be_Application_Abstractions()
+    {
+        var providerInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Enrichment.IExternalKnowledgeProvider");
+        var serviceInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Enrichment.IExternalEnrichmentService");
+        var serviceImplementation = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Enrichment.ExternalEnrichmentService");
+
+        Assert.NotNull(providerInterface);
+        Assert.True(providerInterface.IsInterface);
+
+        Assert.NotNull(serviceInterface);
+        Assert.True(serviceInterface.IsInterface);
+
+        Assert.NotNull(serviceImplementation);
+        Assert.True(serviceInterface.IsAssignableFrom(serviceImplementation));
+    }
+
+    [Fact]
+    public void HttpExternalKnowledgeProvider_Should_Be_In_Infrastructure_Assembly()
+    {
+        var infrastructureAssembly = typeof(EngineeringKnowledgeHub.Infrastructure.DependencyInjection).Assembly;
+        var httpProviderType = infrastructureAssembly.GetType("EngineeringKnowledgeHub.Infrastructure.Enrichment.HttpExternalKnowledgeProvider");
+        var providerInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Enrichment.IExternalKnowledgeProvider");
+
+        Assert.NotNull(httpProviderType);
+        Assert.NotNull(providerInterface);
+        Assert.True(providerInterface.IsAssignableFrom(httpProviderType));
+    }
+
+    [Fact]
+    public void Domain_Should_Not_Depend_On_External_Enrichment_Or_Http()
+    {
+        var domainTypes = DomainAssembly.GetTypes();
+        foreach (var type in domainTypes)
+        {
+            Assert.DoesNotContain("HttpClient", type.FullName ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Enrichment", type.Namespace ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }
 
 
