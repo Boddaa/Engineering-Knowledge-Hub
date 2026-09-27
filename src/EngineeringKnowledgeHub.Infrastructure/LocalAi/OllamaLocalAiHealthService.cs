@@ -93,15 +93,41 @@ public sealed class OllamaLocalAiHealthService(
         {
             tagsResponse = await response.Content.ReadFromJsonAsync<OllamaTagsResponse>(JsonOptions, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "Failed to deserialize Ollama tags response.");
+            return new LocalAiHealthDto(
+                Enabled: true,
+                RuntimeReachable: true,
+                GenerationModelConfigured: options.GenerationModel,
+                GenerationModelAvailable: false,
+                EmbeddingModelConfigured: options.EmbeddingModel,
+                EmbeddingModelAvailable: false,
+                Status: LocalAiHealthStatus.Unavailable,
+                DiagnosticMessage: $"Local AI runtime is reachable at '{options.BaseUrl}', but returned an invalid or malformed model catalog.");
         }
 
-        var availableModels = tagsResponse?.Models?
+        if (tagsResponse?.Models == null)
+        {
+            return new LocalAiHealthDto(
+                Enabled: true,
+                RuntimeReachable: true,
+                GenerationModelConfigured: options.GenerationModel,
+                GenerationModelAvailable: false,
+                EmbeddingModelConfigured: options.EmbeddingModel,
+                EmbeddingModelAvailable: false,
+                Status: LocalAiHealthStatus.Unavailable,
+                DiagnosticMessage: $"Local AI runtime is reachable at '{options.BaseUrl}', but returned an invalid or malformed model catalog.");
+        }
+
+        var availableModels = tagsResponse.Models
             .Select(m => m.Name)
             .Where(n => !string.IsNullOrWhiteSpace(n))
-            .ToList() ?? [];
+            .ToList();
 
         bool isGenAvailable = IsModelAvailable(options.GenerationModel!, availableModels);
         bool isEmbedAvailable = IsModelAvailable(options.EmbeddingModel!, availableModels);

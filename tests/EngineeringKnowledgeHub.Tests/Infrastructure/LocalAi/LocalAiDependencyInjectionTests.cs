@@ -12,7 +12,7 @@ using Xunit;
 public class LocalAiDependencyInjectionTests
 {
     [Fact]
-    public void AddInfrastructure_WhenLocalAiDisabled_ShouldRegisterDeterministicProviders()
+    public void AddInfrastructure_WhenLocalAiDisabled_ShouldRegisterDeterministicProvidersAsSingleton()
     {
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder()
@@ -23,6 +23,12 @@ public class LocalAiDependencyInjectionTests
             .Build();
 
         services.AddInfrastructure(configuration);
+
+        // Verify descriptor lifetime: deterministic providers are Singleton
+        var aiDescriptor = services.Last(d => d.ServiceType == typeof(IAiProvider));
+        var embedDescriptor = services.Last(d => d.ServiceType == typeof(IEmbeddingProvider));
+        Assert.Equal(ServiceLifetime.Singleton, aiDescriptor.Lifetime);
+        Assert.Equal(ServiceLifetime.Singleton, embedDescriptor.Lifetime);
 
         using var provider = services.BuildServiceProvider();
 
@@ -36,7 +42,7 @@ public class LocalAiDependencyInjectionTests
     }
 
     [Fact]
-    public void AddInfrastructure_WhenLocalAiEnabled_ShouldRegisterOllamaProviders()
+    public void AddInfrastructure_WhenLocalAiEnabled_ShouldRegisterOllamaProvidersWithTransientLifetime()
     {
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder()
@@ -52,6 +58,16 @@ public class LocalAiDependencyInjectionTests
             .Build();
 
         services.AddInfrastructure(configuration);
+
+        // Verify descriptor lifetime: typed HttpClients are Transient (avoiding singleton lifetime mismatch)
+        var aiDescriptor = services.Last(d => d.ServiceType == typeof(IAiProvider));
+        var embedDescriptor = services.Last(d => d.ServiceType == typeof(IEmbeddingProvider));
+        Assert.Equal(ServiceLifetime.Transient, aiDescriptor.Lifetime);
+        Assert.Equal(ServiceLifetime.Transient, embedDescriptor.Lifetime);
+
+        // Verify no singleton descriptors exist for IAiProvider or IEmbeddingProvider
+        Assert.DoesNotContain(services, d => d.ServiceType == typeof(IAiProvider) && d.Lifetime == ServiceLifetime.Singleton);
+        Assert.DoesNotContain(services, d => d.ServiceType == typeof(IEmbeddingProvider) && d.Lifetime == ServiceLifetime.Singleton);
 
         using var provider = services.BuildServiceProvider();
 
@@ -80,6 +96,9 @@ public class LocalAiDependencyInjectionTests
 
         services.AddInfrastructure(configuration);
 
+        var aiDescriptor = services.Last(d => d.ServiceType == typeof(IAiProvider));
+        Assert.Equal(ServiceLifetime.Transient, aiDescriptor.Lifetime);
+
         using var provider = services.BuildServiceProvider();
 
         var aiProvider = provider.GetRequiredService<IAiProvider>();
@@ -102,6 +121,9 @@ public class LocalAiDependencyInjectionTests
             .Build();
 
         services.AddInfrastructure(configuration);
+
+        var aiDescriptor = services.Last(d => d.ServiceType == typeof(IAiProvider));
+        Assert.Equal(ServiceLifetime.Singleton, aiDescriptor.Lifetime);
 
         using var provider = services.BuildServiceProvider();
 

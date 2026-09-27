@@ -61,35 +61,35 @@ public static class DependencyInjection
             ? TimeSpan.FromSeconds(localAiOptions.TimeoutSeconds)
             : TimeSpan.FromSeconds(LocalAiOptions.DefaultTimeoutSeconds);
 
-        services.AddHttpClient<OllamaAiProvider>(client =>
-        {
-            client.BaseAddress = baseUri;
-            client.Timeout = requestTimeout;
-        });
-
-        services.AddHttpClient<OllamaEmbeddingProvider>(client =>
-        {
-            client.BaseAddress = baseUri;
-            client.Timeout = requestTimeout;
-        });
-
+        // Health service is always registered to inspect local AI runtime readiness
         services.AddHttpClient<ILocalAiHealthService, OllamaLocalAiHealthService>(client =>
         {
             client.BaseAddress = baseUri;
             client.Timeout = requestTimeout;
         });
 
-        // 3. Provider selection: Local vs Deterministic
+        // 3. Provider selection & lifetime management: Local vs Deterministic
         if (localAiOptions.Enabled)
         {
             localAiOptions.Validate();
 
-            // Override any default deterministic providers with real local providers
+            // Override any default deterministic providers with DI-managed typed HTTP clients.
+            // Using AddHttpClient<IAiProvider, OllamaAiProvider> ensures standard Transient lifetime
+            // backed by IHttpClientFactory handler pooling, eliminating any singleton/typed-client lifetime mismatch.
             services.RemoveAll<IAiProvider>();
             services.RemoveAll<IEmbeddingProvider>();
 
-            services.AddSingleton<IAiProvider, OllamaAiProvider>();
-            services.AddSingleton<IEmbeddingProvider, OllamaEmbeddingProvider>();
+            services.AddHttpClient<IAiProvider, OllamaAiProvider>(client =>
+            {
+                client.BaseAddress = baseUri;
+                client.Timeout = requestTimeout;
+            });
+
+            services.AddHttpClient<IEmbeddingProvider, OllamaEmbeddingProvider>(client =>
+            {
+                client.BaseAddress = baseUri;
+                client.Timeout = requestTimeout;
+            });
         }
         else
         {
