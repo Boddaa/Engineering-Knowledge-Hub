@@ -1003,7 +1003,70 @@ Approved external sources, safe HTTP retrieval, content bounding, provenance pre
 
 ## Phase 10: Local AI
 
-Local model provider, local embeddings, offline RAG, model configuration and health monitoring.
+Local model provider, local embeddings, offline RAG, model configuration, dimension safety, and operational health monitoring.
+
+```text
+                    Engineering Knowledge Hub
+                              │
+                 ┌────────────┴────────────┐
+                 │                         │
+          Knowledge Retrieval        Semantic Retrieval
+                 │                         │
+                 └────────────┬────────────┘
+                              ↓
+                       Context Builder
+                              ↓
+                         IAiProvider
+                              ↓
+                      OllamaAiProvider
+                              ↓
+                    Ollama Local Runtime (HTTP)
+                              ↓
+                      Local LLM Model
+                              ↓
+                    Grounding Validator
+                              ↓
+                     Answer + Evidence
+```
+
+And embeddings:
+
+```text
+Document / Article
+        ↓
+IEmbeddingProvider
+        ↓
+OllamaEmbeddingProvider
+        ↓
+Ollama Local Runtime (/api/embed)
+        ↓
+Vector (Dimension-Safe)
+        ↓
+Existing Semantic Index
+```
+
+### Architectural Guarantees & Constraints:
+* **Decoupled Provider Architecture**:
+  - Application depends strictly on `IAiProvider`, `IEmbeddingProvider`, and `ILocalAiHealthService`.
+  - Ollama is an Infrastructure adapter detail; Domain and Application contain zero Ollama SDKs, HTTP schemas, or vendor types.
+  - Providers communicate with Ollama via DI-managed `HttpClient` (no manual `new HttpClient()`).
+* **Explicit Provider Selection**:
+  - Enabled via `LocalAI:Enabled = true` or `AI:Provider = Local`.
+  - Deterministic fallback providers (`DeterministicAiProvider`, `DeterministicEmbeddingProvider`) remain fully available for test environments, offline development, and zero-runtime setups.
+  - When Local mode is configured and fails, the system fails clearly at the generation boundary; it will **never** silently fall back to cloud AI or fabricate answers.
+* **Strict Embedding Dimension Safety**:
+  - `IEmbeddingProvider.Dimensions` explicitly represents the configured embedding model's dimensionality.
+  - Vectors returned by the local runtime must match the configured dimension exactly; any mismatch immediately throws `ValidationException`.
+  - The system never silently truncates, resizes, or zero-pads vectors.
+* **Operational Health Monitoring**:
+  - `ILocalAiHealthService` checks reachability and queries `/api/tags` to verify whether `GenerationModel` and `EmbeddingModel` are installed and ready.
+  - Distinguishes between `Healthy`, `Unavailable` (daemon offline), `ModelUnavailable` (runtime reachable but model missing), `Misconfigured`, and `Disabled`.
+  - Exposed via `GET /api/ai/local/health` returning `LocalAiHealthDto`.
+* **Zero Autonomous Action**:
+  - Local AI models act purely as assistants for generation; they cannot approve articles, publish content, modify verification statuses, or bypass evidence grounding.
+* **Local-First & Offline Resilience**:
+  - Startup does not require Ollama to be running.
+  - Zero cloud dependencies, zero external network calls, zero automatic model downloading.
 
 ---
 

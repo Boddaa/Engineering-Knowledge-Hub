@@ -1,4 +1,5 @@
 using EngineeringKnowledgeHub.Api.Extensions;
+using EngineeringKnowledgeHub.Application;
 using EngineeringKnowledgeHub.Infrastructure;
 using Serilog;
 

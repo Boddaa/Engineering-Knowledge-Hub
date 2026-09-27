@@ -83,18 +83,57 @@ To execute all automated architecture, API, and infrastructure tests:
 dotnet test
 ```
 
-## Current Phase
-**Phase 0: Foundation**
+## Local AI Setup & Configuration (Phase 10)
 
-## Future Direction
-Subsequent phases will incrementally introduce:
-* Phase 1: Identity (Authentication, Users, Roles, Claims)
-* Phase 2: Knowledge Core (Articles, Categories, Types, Tags, Products, Technologies)
-* Phase 3: Search (Local search indexing and filtering)
-* Phase 4: Incidents (Incident logging and incident-to-knowledge conversion)
-* Phase 5: Documents & Sources (Document ingestion and extraction)
-* Phase 6: Governance (Review workflow, versioning, audit logging)
-* Phase 7: Semantic Search (Vector embeddings and semantic indexing)
-* Phase 8: RAG (Retrieval-augmented generation assistance)
-* Phase 9: Online Enrichment (External vendor and reference documentation imports)
-* Phase 10: Local AI (On-premise LLM support and inference)
+The platform supports offline, on-premise AI generation and vector embeddings using [Ollama](https://ollama.ai) as the local runtime adapter.
+
+### Core Guarantees
+* **Optional**: Local AI is an optional enhancement. When disabled, the application runs entirely offline using built-in deterministic providers (`DeterministicAiProvider`, `DeterministicEmbeddingProvider`).
+* **Zero Cloud Egress**: When Local AI is active, inference and embeddings run exclusively through the local Ollama HTTP API (`http://127.0.0.1:11434`). No cloud fallback or internet calls are ever made.
+* **Dimension Safety**: Embedding dimensions are strictly verified against `LocalAI:EmbeddingDimensions` (no silent resizing or padding).
+* **Startup Independence**: The application starts and functions normally even if Ollama is not running.
+
+### Quickstart with Ollama
+1. **Install and start Ollama**:
+   ```bash
+   # Download from https://ollama.ai and start the local daemon
+   ollama serve
+   ```
+2. **Pull local models**:
+   ```bash
+   ollama pull llama3
+   ollama pull nomic-embed-text
+   ```
+3. **Configure the application** (in `appsettings.json` or environment variables):
+   ```json
+   "LocalAI": {
+     "Enabled": true,
+     "BaseUrl": "http://127.0.0.1:11434",
+     "GenerationModel": "llama3",
+     "EmbeddingModel": "nomic-embed-text",
+     "TimeoutSeconds": 120,
+     "EmbeddingDimensions": 768
+   }
+   ```
+4. **Check Local AI health**:
+   `GET /api/ai/local/health` returns operational readiness and model presence:
+   * `200 OK` with `Status: "Healthy"` when daemon and models are ready.
+   * `200 OK` with `Status: "Disabled"` when Local AI is switched off.
+   * `503 Service Unavailable` with `Status: "Unavailable"` or `"ModelUnavailable"` when daemon is offline or models are missing.
+
+## Current Phase
+**Phase 10: Local AI** (Completed)
+
+## Roadmap Overview
+* Phase 0: Foundation ✅
+* Phase 1: Identity & Core Domain Foundation ✅
+* Phase 2: Knowledge Core Application Foundation ✅
+* Phase 3: Search (Local search indexing and filtering) ✅
+* Phase 4: Incidents (Incident logging and incident-to-knowledge conversion) ✅
+* Phase 5: Documents & Sources (Document ingestion and extraction) ✅
+* Phase 6: Governance (Review workflow, versioning, audit logging) ✅
+* Phase 7: Semantic Search (Vector embeddings and semantic indexing) ✅
+* Phase 8: RAG (Retrieval-augmented generation assistance) ✅
+* Phase 9: Online Enrichment (External vendor and reference documentation imports) ✅
+* Phase 10: Local AI (On-premise LLM support, embeddings, and health monitoring) ✅
+
