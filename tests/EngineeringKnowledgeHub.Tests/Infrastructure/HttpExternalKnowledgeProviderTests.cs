@@ -3,7 +3,10 @@ namespace EngineeringKnowledgeHub.Tests.Infrastructure;
 using System.Net;
 using System.Text;
 using EngineeringKnowledgeHub.Application.Enrichment;
+using EngineeringKnowledgeHub.Infrastructure;
 using EngineeringKnowledgeHub.Infrastructure.Enrichment;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 public class HttpExternalKnowledgeProviderTests
@@ -17,21 +20,28 @@ public class HttpExternalKnowledgeProviderTests
         }
     }
 
-    [Fact]
-    public async Task FetchContentAsync_WithSuccessfulResponse_ShouldReturnSuccessWithContent()
+    [Theory]
+    [InlineData("text/plain")]
+    [InlineData("text/html")]
+    [InlineData("text/markdown")]
+    [InlineData("application/json")]
+    [InlineData("application/xml")]
+    [InlineData("text/xml")]
+    [InlineData("text/csv")]
+    public async Task FetchContentAsync_WithSupportedContentType_ShouldReturnSuccessWithContent(string contentType)
     {
         var content = "Sample engineering vendor documentation content.";
         var handler = new MockHttpMessageHandler((req, ct) =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(content, Encoding.UTF8, "text/plain")
+                Content = new StringContent(content, Encoding.UTF8, contentType)
             };
             return Task.FromResult(response);
         });
 
         using var client = new HttpClient(handler);
-        using var provider = new HttpExternalKnowledgeProvider(client);
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest("https://vendor.example.com/docs/api.txt");
         var result = await provider.FetchContentAsync(request);
@@ -41,8 +51,63 @@ public class HttpExternalKnowledgeProviderTests
         Assert.Equal(200, result.StatusCode);
         Assert.NotNull(result.Content);
         Assert.Equal(content, Encoding.UTF8.GetString(result.Content));
-        Assert.Equal("text/plain", result.ContentType);
+        Assert.Equal(contentType, result.ContentType);
         Assert.Null(result.ErrorMessage);
+    }
+
+    [Theory]
+    [InlineData("application/octet-stream")]
+    [InlineData("image/png")]
+    [InlineData("audio/mpeg")]
+    [InlineData("video/mp4")]
+    [InlineData("application/x-zip-compressed")]
+    public async Task FetchContentAsync_WithUnsupportedContentType_ShouldReturnUnsupportedContentTypeFailure(string unsupportedContentType)
+    {
+        var handler = new MockHttpMessageHandler((req, ct) =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent([0x00, 0x01, 0x02, 0x03])
+            };
+            response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(unsupportedContentType);
+            return Task.FromResult(response);
+        });
+
+        using var client = new HttpClient(handler);
+        var provider = new HttpExternalKnowledgeProvider(client);
+
+        var request = new ExternalContentRequest("https://vendor.example.com/file.bin");
+        var result = await provider.FetchContentAsync(request);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("UnsupportedContentType", result.ErrorCategory);
+        Assert.Equal(200, result.StatusCode);
+        Assert.Contains(unsupportedContentType, result.ErrorMessage);
+        Assert.Null(result.Content);
+    }
+
+    [Fact]
+    public async Task FetchContentAsync_WithMissingContentType_ShouldReturnUnsupportedContentTypeFailure()
+    {
+        var handler = new MockHttpMessageHandler((req, ct) =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(Encoding.UTF8.GetBytes("Some untyped content"))
+            };
+            response.Content.Headers.ContentType = null;
+            return Task.FromResult(response);
+        });
+
+        using var client = new HttpClient(handler);
+        var provider = new HttpExternalKnowledgeProvider(client);
+
+        var request = new ExternalContentRequest("https://vendor.example.com/file");
+        var result = await provider.FetchContentAsync(request);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("UnsupportedContentType", result.ErrorCategory);
+        Assert.Contains("did not specify a Content-Type", result.ErrorMessage);
     }
 
     [Fact]
@@ -58,7 +123,7 @@ public class HttpExternalKnowledgeProviderTests
         });
 
         using var client = new HttpClient(handler);
-        using var provider = new HttpExternalKnowledgeProvider(client);
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest("https://vendor.example.com/missing-doc.html");
         var result = await provider.FetchContentAsync(request);
@@ -82,7 +147,7 @@ public class HttpExternalKnowledgeProviderTests
         });
 
         using var client = new HttpClient(handler);
-        using var provider = new HttpExternalKnowledgeProvider(client);
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest("https://vendor.example.com/error");
         var result = await provider.FetchContentAsync(request);
@@ -98,7 +163,8 @@ public class HttpExternalKnowledgeProviderTests
     [InlineData("gopher://gopher.example.com")]
     public async Task FetchContentAsync_WithUnsupportedScheme_ShouldReturnInvalidSchemeFailure(string unsupportedUrl)
     {
-        using var provider = new HttpExternalKnowledgeProvider();
+        using var client = new HttpClient();
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest(unsupportedUrl);
         var result = await provider.FetchContentAsync(request);
@@ -115,13 +181,59 @@ public class HttpExternalKnowledgeProviderTests
     [InlineData("not-a-valid-uri")]
     public async Task FetchContentAsync_WithMalformedUrl_ShouldReturnInvalidUrlFailure(string? invalidUrl)
     {
-        using var provider = new HttpExternalKnowledgeProvider();
+        using var client = new HttpClient();
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest(invalidUrl!);
         var result = await provider.FetchContentAsync(request);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("InvalidUrl", result.ErrorCategory);
+    }
+
+    [Fact]
+    public async Task FetchContentAsync_WhenCallerRequestsLargeMaxContentSize_CannotExceedConfiguredMaximumLimit()
+    {
+        // Setup payload of 15 MB (exceeds default 10 MB limit)
+        var responseContent = new byte[15 * 1024 * 1024];
+        var handler = new MockHttpMessageHandler((req, ct) =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(responseContent)
+            };
+            response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain");
+            return Task.FromResult(response);
+        });
+
+        using var client = new HttpClient(handler);
+        var provider = new HttpExternalKnowledgeProvider(client);
+
+        // Caller attempts to request 100 MB, which must be clamped to the configured 10 MB ceiling
+        var request = new ExternalContentRequest(
+            "https://vendor.example.com/huge.txt",
+            MaxContentSizeBytes: 100 * 1024 * 1024);
+
+        var result = await provider.FetchContentAsync(request);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("ExceededSizeLimit", result.ErrorCategory);
+    }
+
+    [Fact]
+    public async Task FetchContentAsync_WhenNonPositiveLimitRequested_ShouldReturnInvalidConfiguration()
+    {
+        using var client = new HttpClient();
+        var provider = new HttpExternalKnowledgeProvider(client);
+
+        var request = new ExternalContentRequest(
+            "https://vendor.example.com/test.txt",
+            MaxContentSizeBytes: -100);
+
+        var result = await provider.FetchContentAsync(request);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("InvalidConfiguration", result.ErrorCategory);
     }
 
     [Fact]
@@ -133,15 +245,16 @@ public class HttpExternalKnowledgeProviderTests
             {
                 Content = new ByteArrayContent(new byte[100])
             };
+            response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain");
             response.Content.Headers.ContentLength = 1000;
             return Task.FromResult(response);
         });
 
         using var client = new HttpClient(handler);
-        using var provider = new HttpExternalKnowledgeProvider(client);
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest(
-            "https://vendor.example.com/large.bin",
+            "https://vendor.example.com/large.txt",
             MaxContentSizeBytes: 500);
 
         var result = await provider.FetchContentAsync(request);
@@ -163,16 +276,17 @@ public class HttpExternalKnowledgeProviderTests
             {
                 Content = new ByteArrayContent(largeContent)
             };
+            response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain");
             // Clear content length so it checks the stream reading boundary
             response.Content.Headers.ContentLength = null;
             return Task.FromResult(response);
         });
 
         using var client = new HttpClient(handler);
-        using var provider = new HttpExternalKnowledgeProvider(client);
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest(
-            "https://vendor.example.com/large.bin",
+            "https://vendor.example.com/large.txt",
             MaxContentSizeBytes: 500);
 
         var result = await provider.FetchContentAsync(request);
@@ -192,7 +306,7 @@ public class HttpExternalKnowledgeProviderTests
         });
 
         using var client = new HttpClient(handler);
-        using var provider = new HttpExternalKnowledgeProvider(client);
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -213,7 +327,7 @@ public class HttpExternalKnowledgeProviderTests
         });
 
         using var client = new HttpClient(handler);
-        using var provider = new HttpExternalKnowledgeProvider(client);
+        var provider = new HttpExternalKnowledgeProvider(client);
 
         var request = new ExternalContentRequest("https://unreachable.vendor.local/doc");
         var result = await provider.FetchContentAsync(request);
@@ -221,5 +335,19 @@ public class HttpExternalKnowledgeProviderTests
         Assert.False(result.IsSuccess);
         Assert.Equal("NetworkError", result.ErrorCategory);
         Assert.Contains("DNS resolution failed", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void DependencyInjection_AddInfrastructure_ShouldRegisterTypedHttpClient()
+    {
+        var services = new ServiceCollection();
+        var configuration = new ConfigurationBuilder().Build();
+
+        services.AddInfrastructure(configuration);
+        var provider = services.BuildServiceProvider();
+
+        var externalProvider = provider.GetService<IExternalKnowledgeProvider>();
+        Assert.NotNull(externalProvider);
+        Assert.IsType<HttpExternalKnowledgeProvider>(externalProvider);
     }
 }

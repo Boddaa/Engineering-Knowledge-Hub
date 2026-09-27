@@ -46,9 +46,7 @@ public sealed class ExternalEnrichmentService(
             throw new ValidationException($"Source '{source.Name}' has SourceType '{source.SourceType}'. Only External and VendorDocumentation sources are eligible for online enrichment.");
         }
 
-        var targetUrl = !string.IsNullOrWhiteSpace(command?.UrlOverride)
-            ? command.UrlOverride.Trim()
-            : source.Url;
+        var targetUrl = source.Url;
 
         if (string.IsNullOrWhiteSpace(targetUrl))
         {
@@ -63,8 +61,8 @@ public sealed class ExternalEnrichmentService(
 
         var fetchRequest = new ExternalContentRequest(
             Url: targetUrl,
-            Timeout: command?.Timeout ?? TimeSpan.FromSeconds(_options.TimeoutSeconds),
-            MaxContentSizeBytes: command?.MaxContentSizeBytes ?? _options.MaxContentSizeBytes);
+            Timeout: TimeSpan.FromSeconds(_options.TimeoutSeconds),
+            MaxContentSizeBytes: _options.MaxContentSizeBytes);
 
         var fetchResult = await externalKnowledgeProvider.FetchContentAsync(fetchRequest, cancellationToken);
         if (!fetchResult.IsSuccess)

@@ -5,11 +5,8 @@ namespace EngineeringKnowledgeHub.Application.Enrichment;
 /// </summary>
 public sealed record ExternalImportCommand(
     Guid? ImportedById = null,
-    string? UrlOverride = null,
     string? CustomFileName = null,
-    bool? ChunkAndIndex = null,
-    TimeSpan? Timeout = null,
-    long? MaxContentSizeBytes = null);
+    bool? ChunkAndIndex = null);
 
 /// <summary>
 /// Command to propose a draft knowledge article from an imported document.

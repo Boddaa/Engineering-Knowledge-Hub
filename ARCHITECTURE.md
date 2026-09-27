@@ -996,6 +996,10 @@ Approved external sources, safe HTTP retrieval, content bounding, provenance pre
 * **Provenance is preserved**: Imported external material remains permanently traceable to its origin source (`SourceId`, `SourceName`, `SourceType`, `SourceUrl`, `TrustLevel`, content hash, and timestamp).
 * **External content is not automatically trusted**: External document chunks retrieved as RAG evidence retain `VerificationStatus == null` and explicit `Metadata["IsExternal"] = "true"`, preventing them from masquerading as verified internal knowledge.
 * **Human review remains authoritative**: Imported material can be proposed as a `Draft` (`Unverified`) knowledge article, strictly requiring human review before approval and publication. No autonomous AI publishing.
+* **Egress & SSRF Boundaries and Limitations**:
+  - The HTTP/HTTPS scheme whitelist and governance approval of `KnowledgeSource.Url` restrict requests to standard web protocols and prevent protocol switching (`file://`, `ftp://`, `gopher://`).
+  - **Security Limitation**: Scheme validation and initial URL checks alone do *not* prevent SSRF attacks against internal network resources or cloud metadata services (e.g. `169.254.169.254`, `localhost`, RFC 1918 private subnets), nor does initial URL approval guarantee that HTTP redirects (capped at 3 hops) will not navigate to internal targets.
+  - Enterprise/production environments requiring strict egress isolation must enforce network-level or reverse-proxy boundary defenses (e.g., firewall egress rules, private IP blocking at the gateway, or egress proxies) rather than relying solely on application-layer scheme validation.
 
 ## Phase 10: Local AI
 

@@ -297,4 +297,116 @@ public class ExternalEnrichmentServiceTests
         await Assert.ThrowsAsync<NotFoundException>(() =>
             service.ProposeArticleFromDocumentAsync(command));
     }
+
+    [Fact]
+    public async Task ImportFromSourceAsync_AlwaysUsesCanonicalSourceUrl_AndPreservesInResult()
+    {
+        var source = new KnowledgeSource(
+            Guid.NewGuid(),
+            "Canonical Vendor Specs",
+            SourceType.VendorDocumentation,
+            _dateTimeProvider.UtcNow,
+            url: "https://canonical.vendor.example.com/specs.txt",
+            isApproved: true);
+        await _sourceRepo.AddAsync(source);
+
+        string? retrievedUrl = null;
+        var fakeProvider = new FakeExternalKnowledgeProvider(req =>
+        {
+            retrievedUrl = req.Url;
+            return ExternalContentResult.Success(
+                req.Url,
+                Encoding.UTF8.GetBytes("Canonical specs content."),
+                "text/plain",
+                200,
+                _dateTimeProvider.UtcNow);
+        });
+
+        var service = CreateService(fakeProvider);
+        var command = new ExternalImportCommand(
+            ImportedById: Guid.NewGuid(),
+            CustomFileName: "custom_canonical.txt",
+            ChunkAndIndex: true);
+
+        var result = await service.ImportFromSourceAsync(source.Id, command);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("https://canonical.vendor.example.com/specs.txt", retrievedUrl);
+        Assert.Equal("https://canonical.vendor.example.com/specs.txt", result.Url);
+        Assert.Equal(source.Id, result.SourceId);
+        Assert.Equal(source.Name, result.SourceName);
+    }
+
+    [Fact]
+    public async Task ImportFromSourceAsync_UsesConfiguredTimeoutAndMaxContentSizeBytes()
+    {
+        var source = new KnowledgeSource(
+            Guid.NewGuid(),
+            "Bounded Source Specs",
+            SourceType.VendorDocumentation,
+            _dateTimeProvider.UtcNow,
+            url: "https://bounded.vendor.example.com/docs.txt",
+            isApproved: true);
+        await _sourceRepo.AddAsync(source);
+
+        TimeSpan? observedTimeout = null;
+        long? observedMaxSize = null;
+
+        var fakeProvider = new FakeExternalKnowledgeProvider(req =>
+        {
+            observedTimeout = req.Timeout;
+            observedMaxSize = req.MaxContentSizeBytes;
+            return ExternalContentResult.Success(
+                req.Url,
+                Encoding.UTF8.GetBytes("Bounded content."),
+                "text/plain",
+                200,
+                _dateTimeProvider.UtcNow);
+        });
+
+        var configuredOptions = new ExternalImportOptions
+        {
+            TimeoutSeconds = 12,
+            MaxContentSizeBytes = 2048,
+        };
+
+        var service = new ExternalEnrichmentService(
+            sourceRepository: _sourceRepo,
+            documentRepository: _docRepo,
+            fileHasher: _fileHasher,
+            externalKnowledgeProvider: fakeProvider,
+            textExtractor: _textExtractor,
+            dateTimeProvider: _dateTimeProvider,
+            chunkRepository: _chunkRepo,
+            semanticIndexService: _semanticIndexService,
+            textChunker: _textChunker,
+            articleRepository: _articleRepo,
+            options: configuredOptions);
+
+        var result = await service.ImportFromSourceAsync(source.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(TimeSpan.FromSeconds(12), observedTimeout);
+        Assert.Equal(2048, observedMaxSize);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-100)]
+    public void ExternalImportOptions_WhenConfiguredWithNonPositiveTimeout_ShouldThrowArgumentOutOfRangeException(int invalidTimeout)
+    {
+        var options = new ExternalImportOptions();
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.TimeoutSeconds = invalidTimeout);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-5000)]
+    public void ExternalImportOptions_WhenConfiguredWithNonPositiveMaxSize_ShouldThrowArgumentOutOfRangeException(long invalidMaxSize)
+    {
+        var options = new ExternalImportOptions();
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.MaxContentSizeBytes = invalidMaxSize);
+    }
 }

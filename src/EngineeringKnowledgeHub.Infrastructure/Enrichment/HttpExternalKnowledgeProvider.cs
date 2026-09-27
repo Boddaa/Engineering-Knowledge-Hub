@@ -4,32 +4,28 @@ using EngineeringKnowledgeHub.Application.Enrichment;
 
 /// <summary>
 /// Infrastructure HTTP implementation of IExternalKnowledgeProvider for approved external sources.
-/// Enforces HTTP/HTTPS only, bounded response sizes, timeout controls, and deterministic error handling.
+/// Enforces DI-managed HttpClient, HTTP/HTTPS only, Content-Type validation, hard configuration bounds,
+/// bounded response sizes, timeout controls, and deterministic error handling.
 /// </summary>
-public sealed class HttpExternalKnowledgeProvider : IExternalKnowledgeProvider, IDisposable
+public sealed class HttpExternalKnowledgeProvider : IExternalKnowledgeProvider
 {
-    private readonly HttpClient _httpClient;
-    private readonly bool _disposeClient;
-
-    public HttpExternalKnowledgeProvider(HttpClient? httpClient = null)
+    private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        if (httpClient != null)
-        {
-            _httpClient = httpClient;
-            _disposeClient = false;
-        }
-        else
-        {
-            var handler = new SocketsHttpHandler
-            {
-                AllowAutoRedirect = true,
-                MaxAutomaticRedirections = 5,
-                AutomaticDecompression = System.Net.DecompressionMethods.All
-            };
+        "text/plain",
+        "text/html",
+        "text/markdown",
+        "text/x-markdown",
+        "application/json",
+        "application/xml",
+        "text/xml",
+        "text/csv"
+    };
 
-            _httpClient = new HttpClient(handler);
-            _disposeClient = true;
-        }
+    private readonly HttpClient _httpClient;
+
+    public HttpExternalKnowledgeProvider(HttpClient httpClient)
+    {
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
     public async Task<ExternalContentResult> FetchContentAsync(
@@ -70,8 +66,36 @@ public sealed class HttpExternalKnowledgeProvider : IExternalKnowledgeProvider, 
                 retrievedAt: now);
         }
 
-        var timeout = request.Timeout ?? TimeSpan.FromSeconds(ExternalImportOptions.DefaultTimeoutSeconds);
-        var maxBytes = request.MaxContentSizeBytes ?? ExternalImportOptions.DefaultMaxContentSizeBytes;
+        // Hard configuration safety boundary: callers cannot increase configured maximums
+        if (request.Timeout.HasValue && request.Timeout.Value <= TimeSpan.Zero)
+        {
+            return ExternalContentResult.Failure(
+                url: request.Url,
+                errorMessage: "Timeout must be greater than zero.",
+                errorCategory: "InvalidConfiguration",
+                statusCode: null,
+                retrievedAt: now);
+        }
+
+        if (request.MaxContentSizeBytes.HasValue && request.MaxContentSizeBytes.Value <= 0)
+        {
+            return ExternalContentResult.Failure(
+                url: request.Url,
+                errorMessage: "MaxContentSizeBytes must be greater than zero.",
+                errorCategory: "InvalidConfiguration",
+                statusCode: null,
+                retrievedAt: now);
+        }
+
+        var maxAllowedTimeout = TimeSpan.FromSeconds(ExternalImportOptions.DefaultTimeoutSeconds);
+        var timeout = request.Timeout.HasValue && request.Timeout.Value < maxAllowedTimeout
+            ? request.Timeout.Value
+            : maxAllowedTimeout;
+
+        var maxAllowedBytes = ExternalImportOptions.DefaultMaxContentSizeBytes;
+        var maxBytes = request.MaxContentSizeBytes.HasValue && request.MaxContentSizeBytes.Value < maxAllowedBytes
+            ? request.MaxContentSizeBytes.Value
+            : maxAllowedBytes;
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
@@ -94,6 +118,28 @@ public sealed class HttpExternalKnowledgeProvider : IExternalKnowledgeProvider, 
                     url: request.Url,
                     errorMessage: $"Remote server returned HTTP status code {statusCode} ({response.ReasonPhrase}).",
                     errorCategory: "HttpError",
+                    statusCode: statusCode,
+                    retrievedAt: DateTimeOffset.UtcNow);
+            }
+
+            // Enforce Content-Type validation BEFORE reading or buffering body payload
+            var rawContentType = response.Content.Headers.ContentType?.MediaType?.Trim();
+            if (string.IsNullOrWhiteSpace(rawContentType))
+            {
+                return ExternalContentResult.Failure(
+                    url: request.Url,
+                    errorMessage: "Remote server did not specify a Content-Type header in the response.",
+                    errorCategory: "UnsupportedContentType",
+                    statusCode: statusCode,
+                    retrievedAt: DateTimeOffset.UtcNow);
+            }
+
+            if (!AllowedContentTypes.Contains(rawContentType))
+            {
+                return ExternalContentResult.Failure(
+                    url: request.Url,
+                    errorMessage: $"Remote Content-Type '{rawContentType}' is unsupported. Only safe text-oriented formats (plain text, markdown, HTML, JSON, XML, CSV) are permitted.",
+                    errorCategory: "UnsupportedContentType",
                     statusCode: statusCode,
                     retrievedAt: DateTimeOffset.UtcNow);
             }
@@ -133,11 +179,10 @@ public sealed class HttpExternalKnowledgeProvider : IExternalKnowledgeProvider, 
                 ms.Write(buffer, 0, read);
             }
 
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "text/plain";
             return ExternalContentResult.Success(
                 url: request.Url,
                 content: ms.ToArray(),
-                contentType: contentType,
+                contentType: rawContentType,
                 statusCode: statusCode,
                 retrievedAt: DateTimeOffset.UtcNow);
         }
@@ -176,14 +221,6 @@ public sealed class HttpExternalKnowledgeProvider : IExternalKnowledgeProvider, 
                 errorCategory: "UnexpectedError",
                 statusCode: null,
                 retrievedAt: DateTimeOffset.UtcNow);
-        }
-    }
-
-    public void Dispose()
-    {
-        if (_disposeClient)
-        {
-            _httpClient.Dispose();
         }
     }
 }

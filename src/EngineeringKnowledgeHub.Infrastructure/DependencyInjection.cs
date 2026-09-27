@@ -12,7 +12,13 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddSingleton<IExternalKnowledgeProvider, HttpExternalKnowledgeProvider>();
+        services.AddHttpClient<IExternalKnowledgeProvider, HttpExternalKnowledgeProvider>()
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = true,
+                MaxAutomaticRedirections = 5,
+                AutomaticDecompression = System.Net.DecompressionMethods.All
+            });
 
         return services;
     }
