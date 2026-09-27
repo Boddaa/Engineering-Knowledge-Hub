@@ -20,17 +20,20 @@ public sealed class KnowledgeRetriever : IKnowledgeRetriever
     private readonly ISemanticSearchService? _semanticSearchService;
     private readonly IIncidentRepository? _incidentRepository;
     private readonly IDocumentRepository? _documentRepository;
+    private readonly IKnowledgeArticleRepository? _articleRepository;
 
     public KnowledgeRetriever(
         ISearchService searchService,
         ISemanticSearchService? semanticSearchService = null,
         IIncidentRepository? incidentRepository = null,
-        IDocumentRepository? documentRepository = null)
+        IDocumentRepository? documentRepository = null,
+        IKnowledgeArticleRepository? articleRepository = null)
     {
         _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
         _semanticSearchService = semanticSearchService;
         _incidentRepository = incidentRepository;
         _documentRepository = documentRepository;
+        _articleRepository = articleRepository;
     }
 
     public async Task<IReadOnlyList<RagEvidenceItem>> RetrieveEvidenceAsync(
@@ -136,8 +139,8 @@ public sealed class KnowledgeRetriever : IKnowledgeRetriever
             }
         }
 
-        // 3. Retrieve Incidents (if repository available and no restrictive article-specific filters)
-        if (_incidentRepository != null && !request.KnowledgeTypeId.HasValue && !request.VerificationStatus.HasValue)
+        // 3. Retrieve Incidents (if repository available and incidents can be proven to match requested filters)
+        if (_incidentRepository != null)
         {
             var incidents = await _incidentRepository.GetAllAsync(cancellationToken);
             var queryTerms = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -145,6 +148,12 @@ public sealed class KnowledgeRetriever : IKnowledgeRetriever
             foreach (var inc in incidents)
             {
                 if (inc.Status != IncidentStatus.Resolved)
+                {
+                    continue;
+                }
+
+                // Verify structured filter integrity
+                if (!await IncidentMatchesFiltersAsync(inc, request, cancellationToken))
                 {
                     continue;
                 }
@@ -295,5 +304,73 @@ public sealed class KnowledgeRetriever : IKnowledgeRetriever
         }
 
         return score;
+    }
+
+    private async Task<bool> IncidentMatchesFiltersAsync(
+        Incident incident,
+        RagRetrievalRequest request,
+        CancellationToken cancellationToken)
+    {
+        bool hasStructuredFilter = request.ProductId.HasValue ||
+                                   request.TechnologyId.HasValue ||
+                                   request.KnowledgeTypeId.HasValue ||
+                                   request.TagId.HasValue ||
+                                   request.VerificationStatus.HasValue;
+
+        // If no structured filters are specified, the incident matches
+        if (!hasStructuredFilter)
+        {
+            return true;
+        }
+
+        // If structured filters are specified, the incident can participate ONLY if
+        // the system can prove that it satisfies the requested filters via linked articles.
+        if (incident.ArticleLinks.Count == 0 || _articleRepository == null)
+        {
+            return false;
+        }
+
+        foreach (var link in incident.ArticleLinks)
+        {
+            var article = await _articleRepository.GetByIdAsync(link.ArticleId, cancellationToken);
+            if (article == null)
+            {
+                continue;
+            }
+
+            bool matches = true;
+
+            if (request.ProductId.HasValue && !article.ProductIds.Contains(request.ProductId.Value))
+            {
+                matches = false;
+            }
+
+            if (request.TechnologyId.HasValue && !article.TechnologyIds.Contains(request.TechnologyId.Value))
+            {
+                matches = false;
+            }
+
+            if (request.TagId.HasValue && !article.TagIds.Contains(request.TagId.Value))
+            {
+                matches = false;
+            }
+
+            if (request.KnowledgeTypeId.HasValue && article.KnowledgeTypeId != request.KnowledgeTypeId.Value)
+            {
+                matches = false;
+            }
+
+            if (request.VerificationStatus.HasValue && article.VerificationStatus != request.VerificationStatus.Value)
+            {
+                matches = false;
+            }
+
+            if (matches)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

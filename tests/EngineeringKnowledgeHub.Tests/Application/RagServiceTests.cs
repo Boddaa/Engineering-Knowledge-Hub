@@ -33,7 +33,7 @@ public class RagServiceTests
         _semanticSearchService = new SemanticSearchService(_embeddingProvider, _vectorStore);
         _semanticIndexService = new SemanticIndexService(_embeddingProvider, _vectorStore);
         _searchService = new SearchService(_articleRepo, _semanticSearchService);
-        _retriever = new KnowledgeRetriever(_searchService, _semanticSearchService, _incidentRepo, _docRepo);
+        _retriever = new KnowledgeRetriever(_searchService, _semanticSearchService, _incidentRepo, _docRepo, _articleRepo);
         _ragService = new RagService(_retriever, _contextBuilder, _aiProvider, _dateTimeProvider);
     }
 
@@ -212,6 +212,96 @@ public class RagServiceTests
         };
 
         await Assert.ThrowsAsync<ValidationException>(() => _ragService.AskAsync(request));
+    }
+
+    [Fact]
+    public async Task AskAsync_WhenAiProviderReturnsInvalidCitation_ShouldRejectAndPreserveEvidence()
+    {
+        var article = CreateArticle("Laser Sensor Alignment", "Alignment guide", "Adjust angle to 45 degrees.");
+        await _articleRepo.AddAsync(article);
+        await _semanticIndexService.IndexArticleAsync(article);
+
+        var mockProvider = new StaticOutputAiProvider("The fix is described in [999].");
+        var customRagService = new RagService(_retriever, _contextBuilder, mockProvider, _dateTimeProvider);
+
+        var response = await customRagService.AskAsync(new RagQuestionRequest
+        {
+            Question = "How to adjust laser angle?"
+        });
+
+        Assert.False(response.IsSufficientEvidence);
+        Assert.Equal(RagService.GroundingFailureFallbackAnswer, response.Answer);
+        Assert.NotEmpty(response.Evidence);
+        Assert.Equal(article.Id, response.Evidence[0].ReferenceId);
+    }
+
+    [Fact]
+    public async Task AskAsync_WhenAiProviderReturnsNoCitationMarkers_ShouldRejectAndPreserveEvidence()
+    {
+        var article = CreateArticle("Laser Sensor Alignment", "Alignment guide", "Adjust angle to 45 degrees.");
+        await _articleRepo.AddAsync(article);
+        await _semanticIndexService.IndexArticleAsync(article);
+
+        var mockProvider = new StaticOutputAiProvider("This is an ungrounded claim without any citation bracket markers.");
+        var customRagService = new RagService(_retriever, _contextBuilder, mockProvider, _dateTimeProvider);
+
+        var response = await customRagService.AskAsync(new RagQuestionRequest
+        {
+            Question = "How to adjust laser angle?"
+        });
+
+        Assert.False(response.IsSufficientEvidence);
+        Assert.Equal(RagService.GroundingFailureFallbackAnswer, response.Answer);
+        Assert.NotEmpty(response.Evidence);
+        Assert.Equal(article.Id, response.Evidence[0].ReferenceId);
+    }
+
+    [Fact]
+    public async Task AskAsync_WhenAiProviderReturnsDuplicateValidCitations_ShouldAcceptGroundedAnswer()
+    {
+        var article = CreateArticle("Laser Sensor Alignment", "Alignment guide", "Adjust angle to 45 degrees.");
+        await _articleRepo.AddAsync(article);
+        await _semanticIndexService.IndexArticleAsync(article);
+
+        var mockProvider = new StaticOutputAiProvider("According to [1], adjust the angle. Also, [1] confirms 45 degrees.");
+        var customRagService = new RagService(_retriever, _contextBuilder, mockProvider, _dateTimeProvider);
+
+        var response = await customRagService.AskAsync(new RagQuestionRequest
+        {
+            Question = "How to adjust laser angle?"
+        });
+
+        Assert.True(response.IsSufficientEvidence);
+        Assert.Equal("According to [1], adjust the angle. Also, [1] confirms 45 degrees.", response.Answer);
+        Assert.Single(response.Evidence);
+    }
+
+    [Fact]
+    public async Task AskAsync_WhenAiProviderReturnsMixedValidAndInvalidCitations_ShouldRejectAndPreserveEvidence()
+    {
+        var article = CreateArticle("Laser Sensor Alignment", "Alignment guide", "Adjust angle to 45 degrees.");
+        await _articleRepo.AddAsync(article);
+        await _semanticIndexService.IndexArticleAsync(article);
+
+        var mockProvider = new StaticOutputAiProvider("Part one is in [1], but secret part is in [999].");
+        var customRagService = new RagService(_retriever, _contextBuilder, mockProvider, _dateTimeProvider);
+
+        var response = await customRagService.AskAsync(new RagQuestionRequest
+        {
+            Question = "How to adjust laser angle?"
+        });
+
+        Assert.False(response.IsSufficientEvidence);
+        Assert.Equal(RagService.GroundingFailureFallbackAnswer, response.Answer);
+        Assert.NotEmpty(response.Evidence);
+    }
+
+    private class StaticOutputAiProvider(string output) : IAiProvider
+    {
+        public Task<AiResponse> GenerateAsync(AiPromptRequest request, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new AiResponse(output, "MockModel", 10, 10));
+        }
     }
 
     private static KnowledgeArticle CreateArticle(

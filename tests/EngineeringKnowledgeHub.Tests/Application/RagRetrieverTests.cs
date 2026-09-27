@@ -31,7 +31,8 @@ public class RagRetrieverTests
             _searchService,
             _semanticSearchService,
             _incidentRepo,
-            _docRepo);
+            _docRepo,
+            _articleRepo);
     }
 
     [Fact]
@@ -234,14 +235,207 @@ public class RagRetrieverTests
         await Assert.ThrowsAsync<ValidationException>(() => _retriever.RetrieveEvidenceAsync(request));
     }
 
+    [Fact]
+    public async Task RetrieveEvidenceAsync_WithProductFilter_WhenIncidentRelatedOnlyToDifferentProduct_ShouldExcludeIncident()
+    {
+        var productA = Guid.NewGuid();
+        var productB = Guid.NewGuid();
+
+        var articleB = CreateArticle("Article B", "Summary B", "Content B", productId: productB);
+        await _articleRepo.AddAsync(articleB);
+
+        var incidentB = new Incident(
+            Guid.NewGuid(),
+            "Camera Switch Loop Incident",
+            "Broadcast storm on switch",
+            IncidentSeverity.High,
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        incidentB.LinkArticle(articleB.Id, ArticleRelationshipType.RelatesTo);
+        incidentB.Resolve(Guid.NewGuid(), "Disabled spanning tree port loop", "Loop", DateTimeOffset.UtcNow);
+        await _incidentRepo.AddAsync(incidentB);
+
+        var request = new RagRetrievalRequest
+        {
+            Query = "Broadcast storm spanning tree switch loop",
+            ProductId = productA,
+            MinRelevanceScore = 0.1
+        };
+
+        var evidence = await _retriever.RetrieveEvidenceAsync(request);
+
+        Assert.DoesNotContain(evidence, e => e.SourceType == "Incident" && e.ReferenceId == incidentB.Id);
+    }
+
+    [Fact]
+    public async Task RetrieveEvidenceAsync_WithTechnologyFilter_WhenIncidentRelatedOnlyToDifferentTechnology_ShouldExcludeIncident()
+    {
+        var techA = Guid.NewGuid();
+        var techB = Guid.NewGuid();
+
+        var articleB = CreateArticle("Article B", "Summary B", "Content B", technologyId: techB);
+        await _articleRepo.AddAsync(articleB);
+
+        var incidentB = new Incident(
+            Guid.NewGuid(),
+            "Database deadlock incident",
+            "Deadlock on transaction commit",
+            IncidentSeverity.High,
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        incidentB.LinkArticle(articleB.Id, ArticleRelationshipType.RelatesTo);
+        incidentB.Resolve(Guid.NewGuid(), "Optimized query isolation level", "Lock contention", DateTimeOffset.UtcNow);
+        await _incidentRepo.AddAsync(incidentB);
+
+        var request = new RagRetrievalRequest
+        {
+            Query = "deadlock transaction commit",
+            TechnologyId = techA,
+            MinRelevanceScore = 0.1
+        };
+
+        var evidence = await _retriever.RetrieveEvidenceAsync(request);
+
+        Assert.DoesNotContain(evidence, e => e.SourceType == "Incident" && e.ReferenceId == incidentB.Id);
+    }
+
+    [Fact]
+    public async Task RetrieveEvidenceAsync_WithTagFilter_WhenIncidentRelatedOnlyToDifferentTag_ShouldExcludeIncident()
+    {
+        var tagA = Guid.NewGuid();
+        var tagB = Guid.NewGuid();
+
+        var articleB = CreateArticle("Article B", "Summary B", "Content B", tagId: tagB);
+        await _articleRepo.AddAsync(articleB);
+
+        var incidentB = new Incident(
+            Guid.NewGuid(),
+            "Power supply voltage fluctuation",
+            "Voltage drop on controller board",
+            IncidentSeverity.Critical,
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        incidentB.LinkArticle(articleB.Id, ArticleRelationshipType.RelatesTo);
+        incidentB.Resolve(Guid.NewGuid(), "Replaced power supply unit", "Faulty capacitor", DateTimeOffset.UtcNow);
+        await _incidentRepo.AddAsync(incidentB);
+
+        var request = new RagRetrievalRequest
+        {
+            Query = "voltage drop controller power supply",
+            TagId = tagA,
+            MinRelevanceScore = 0.1
+        };
+
+        var evidence = await _retriever.RetrieveEvidenceAsync(request);
+
+        Assert.DoesNotContain(evidence, e => e.SourceType == "Incident" && e.ReferenceId == incidentB.Id);
+    }
+
+    [Fact]
+    public async Task RetrieveEvidenceAsync_WithKnowledgeTypeFilter_WhenIncidentRelatedOnlyToDifferentType_ShouldExcludeIncident()
+    {
+        var typeA = Guid.NewGuid();
+        var typeB = Guid.NewGuid();
+
+        var articleB = CreateArticle("Article B", "Summary B", "Content B", knowledgeTypeId: typeB);
+        await _articleRepo.AddAsync(articleB);
+
+        var incidentB = new Incident(
+            Guid.NewGuid(),
+            "Camera lens blur incident",
+            "Blurry image capture",
+            IncidentSeverity.Medium,
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        incidentB.LinkArticle(articleB.Id, ArticleRelationshipType.RelatesTo);
+        incidentB.Resolve(Guid.NewGuid(), "Adjusted focus ring", "Out of focus", DateTimeOffset.UtcNow);
+        await _incidentRepo.AddAsync(incidentB);
+
+        var request = new RagRetrievalRequest
+        {
+            Query = "Blurry image focus ring",
+            KnowledgeTypeId = typeA,
+            MinRelevanceScore = 0.1
+        };
+
+        var evidence = await _retriever.RetrieveEvidenceAsync(request);
+
+        Assert.DoesNotContain(evidence, e => e.SourceType == "Incident" && e.ReferenceId == incidentB.Id);
+    }
+
+    [Fact]
+    public async Task RetrieveEvidenceAsync_WithVerificationStatusFilter_WhenIncidentLinkedOnlyToUnverifiedArticle_ShouldExcludeIncident()
+    {
+        var articleUnverified = CreateArticle("Unverified Article", "Summary", "Content", isApproved: false);
+        await _articleRepo.AddAsync(articleUnverified);
+
+        var incident = new Incident(
+            Guid.NewGuid(),
+            "Fiber optic cable cut",
+            "Fiber signal loss",
+            IncidentSeverity.Critical,
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        incident.LinkArticle(articleUnverified.Id, ArticleRelationshipType.RelatesTo);
+        incident.Resolve(Guid.NewGuid(), "Spliced fiber optic core", "Cut cable", DateTimeOffset.UtcNow);
+        await _incidentRepo.AddAsync(incident);
+
+        var request = new RagRetrievalRequest
+        {
+            Query = "fiber signal loss spliced cable",
+            VerificationStatus = VerificationStatus.Verified,
+            MinRelevanceScore = 0.1
+        };
+
+        var evidence = await _retriever.RetrieveEvidenceAsync(request);
+
+        Assert.DoesNotContain(evidence, e => e.SourceType == "Incident" && e.ReferenceId == incident.Id);
+    }
+
+    [Fact]
+    public async Task RetrieveEvidenceAsync_WithStructuredFilter_WhenIncidentHasNoLinkedArticles_ShouldExcludeIncident()
+    {
+        var targetProduct = Guid.NewGuid();
+
+        var incidentUnlinked = new Incident(
+            Guid.NewGuid(),
+            "Unlinked Hardware Freeze",
+            "Board freeze on boot",
+            IncidentSeverity.High,
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        incidentUnlinked.Resolve(Guid.NewGuid(), "Hard power cycled controller", "Watchdog freeze", DateTimeOffset.UtcNow);
+        await _incidentRepo.AddAsync(incidentUnlinked);
+
+        var request = new RagRetrievalRequest
+        {
+            Query = "Board freeze watchdog power cycle",
+            ProductId = targetProduct,
+            MinRelevanceScore = 0.1
+        };
+
+        var evidence = await _retriever.RetrieveEvidenceAsync(request);
+
+        Assert.DoesNotContain(evidence, e => e.SourceType == "Incident" && e.ReferenceId == incidentUnlinked.Id);
+    }
+
     private static KnowledgeArticle CreateArticle(
         string title,
         string summary,
         string content,
         Guid? knowledgeTypeId = null,
+        Guid? productId = null,
+        Guid? technologyId = null,
+        Guid? tagId = null,
         bool isApproved = true)
     {
-        var slug = Slug.FromTitle(title);
+        var slug = Slug.FromTitle(title + "-" + Guid.NewGuid().ToString("N")[..6]);
         var article = new KnowledgeArticle(
             Guid.NewGuid(),
             title,
@@ -251,6 +445,10 @@ public class RagRetrieverTests
             knowledgeTypeId ?? Guid.NewGuid(),
             Guid.NewGuid(),
             DateTimeOffset.UtcNow);
+
+        if (productId.HasValue) article.AddProduct(productId.Value);
+        if (technologyId.HasValue) article.AddTechnology(technologyId.Value);
+        if (tagId.HasValue) article.AddTag(tagId.Value);
 
         if (isApproved)
         {

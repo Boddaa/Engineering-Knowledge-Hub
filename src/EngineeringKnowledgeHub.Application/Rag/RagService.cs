@@ -16,21 +16,28 @@ public sealed class RagService : IRagService
         "Insufficient evidence was found in the local engineering repository to answer this question. " +
         "Please consult a senior engineer or submit a new knowledge article.";
 
+    public const string GroundingFailureFallbackAnswer =
+        "The generated response could not be verified against the retrieved evidence citations. " +
+        "Please refer directly to the attached evidence sources.";
+
     private readonly IKnowledgeRetriever _retriever;
     private readonly IContextBuilder _contextBuilder;
     private readonly IAiProvider _aiProvider;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IGroundingValidator _groundingValidator;
 
     public RagService(
         IKnowledgeRetriever retriever,
         IContextBuilder contextBuilder,
         IAiProvider aiProvider,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        IGroundingValidator? groundingValidator = null)
     {
         _retriever = retriever ?? throw new ArgumentNullException(nameof(retriever));
         _contextBuilder = contextBuilder ?? throw new ArgumentNullException(nameof(contextBuilder));
         _aiProvider = aiProvider ?? throw new ArgumentNullException(nameof(aiProvider));
         _dateTimeProvider = dateTimeProvider ?? throw new ArgumentNullException(nameof(dateTimeProvider));
+        _groundingValidator = groundingValidator ?? new GroundingValidator();
     }
 
     public async Task<RagResponseDto> AskAsync(
@@ -78,14 +85,14 @@ public sealed class RagService : IRagService
                 AnsweredAt: _dateTimeProvider.UtcNow);
         }
 
-        // 4. Generate grounded answer via AI abstraction
+        // 4. Generate answer via AI abstraction
         var aiResponse = await _aiProvider.GenerateAsync(
             new AiPromptRequest(
                 SystemPrompt: context.SystemPrompt,
                 UserPrompt: context.UserPrompt),
             cancellationToken);
 
-        // 5. Project evidence citations for the caller
+        // 5. Project evidence citations for the caller (always preserved for traceability)
         var evidenceDtos = context.EvidenceItems.Select(e => new RagEvidenceDto(
             CitationNumber: e.CitationNumber,
             SourceType: e.SourceType,
@@ -96,6 +103,19 @@ public sealed class RagService : IRagService
             RelevanceScore: e.RelevanceScore,
             VerificationStatus: e.VerificationStatus,
             Metadata: e.Metadata)).ToList();
+
+        // 6. Enforce Grounding Validation boundary
+        var groundingResult = _groundingValidator.ValidateGrounding(aiResponse.Content, context.EvidenceItems);
+        if (!groundingResult.IsGrounded)
+        {
+            return new RagResponseDto(
+                Question: trimmedQuestion,
+                Answer: GroundingFailureFallbackAnswer,
+                IsSufficientEvidence: false,
+                Evidence: evidenceDtos,
+                ModelUsed: aiResponse.ModelName,
+                AnsweredAt: _dateTimeProvider.UtcNow);
+        }
 
         return new RagResponseDto(
             Question: trimmedQuestion,

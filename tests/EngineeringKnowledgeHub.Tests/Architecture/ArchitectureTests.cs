@@ -171,6 +171,10 @@ public class ArchitectureTests
         Assert.NotNull(ragServiceInterface);
         Assert.True(ragServiceInterface.IsInterface);
 
+        var groundingValidatorInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Rag.IGroundingValidator");
+        Assert.NotNull(groundingValidatorInterface);
+        Assert.True(groundingValidatorInterface.IsInterface);
+
         Assert.NotNull(ragServiceType);
         var ctors = ragServiceType.GetConstructors();
         Assert.NotEmpty(ctors);

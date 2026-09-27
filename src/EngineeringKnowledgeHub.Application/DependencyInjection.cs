@@ -27,6 +27,7 @@ public static class ApplicationDependencyInjection
         services.AddSingleton<IVectorStore, InMemoryVectorStore>();
         services.AddSingleton<IAiProvider, DeterministicAiProvider>();
         services.AddSingleton<IContextBuilder, ContextBuilder>();
+        services.AddSingleton<IGroundingValidator, GroundingValidator>();
 
         services.AddScoped<IKnowledgeArticleService, KnowledgeArticleService>();
         services.AddScoped<IKnowledgeGovernanceService, KnowledgeGovernanceService>();
