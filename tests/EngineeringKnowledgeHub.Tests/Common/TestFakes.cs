@@ -439,3 +439,54 @@ public class InMemoryAuditLogRepository : IAuditLogRepository
     }
 }
 
+public class InMemoryDocumentChunkRepository : IDocumentChunkRepository
+{
+    private readonly ConcurrentDictionary<Guid, DocumentChunk> _chunks = new();
+
+    public Task<DocumentChunk?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _chunks.TryGetValue(id, out var chunk);
+        return Task.FromResult(chunk);
+    }
+
+    public Task<IReadOnlyList<DocumentChunk>> GetByDocumentIdAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<DocumentChunk> list = _chunks.Values
+            .Where(c => c.DocumentId == documentId)
+            .OrderBy(c => c.ChunkIndex)
+            .ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task AddAsync(DocumentChunk chunk, CancellationToken cancellationToken = default)
+    {
+        _chunks[chunk.Id] = chunk;
+        return Task.CompletedTask;
+    }
+
+    public Task AddRangeAsync(IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default)
+    {
+        foreach (var chunk in chunks)
+        {
+            _chunks[chunk.Id] = chunk;
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteByDocumentIdAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        var toRemove = _chunks.Values
+            .Where(c => c.DocumentId == documentId)
+            .Select(c => c.Id)
+            .ToList();
+
+        foreach (var id in toRemove)
+        {
+            _chunks.TryRemove(id, out _);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+

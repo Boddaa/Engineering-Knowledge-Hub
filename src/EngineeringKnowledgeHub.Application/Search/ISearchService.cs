@@ -10,4 +10,9 @@ public interface ISearchService
     Task<PagedResult<SearchArticleResultDto>> SearchArticlesAsync(
         SearchArticleRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<PagedResult<SearchArticleResultDto>> HybridSearchArticlesAsync(
+        HybridSearchArticleRequest request,
+        CancellationToken cancellationToken = default);
 }
+

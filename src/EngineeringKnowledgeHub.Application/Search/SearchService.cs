@@ -3,6 +3,7 @@ namespace EngineeringKnowledgeHub.Application.Search;
 using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Application.DTOs;
+using EngineeringKnowledgeHub.Application.SemanticSearch;
 using EngineeringKnowledgeHub.Domain.Entities;
 using EngineeringKnowledgeHub.Domain.Enums;
 
@@ -15,10 +16,14 @@ using EngineeringKnowledgeHub.Domain.Enums;
 public sealed class SearchService : ISearchService
 {
     private readonly IKnowledgeArticleRepository _articleRepository;
+    private readonly ISemanticSearchService? _semanticSearchService;
 
-    public SearchService(IKnowledgeArticleRepository articleRepository)
+    public SearchService(
+        IKnowledgeArticleRepository articleRepository,
+        ISemanticSearchService? semanticSearchService = null)
     {
         _articleRepository = articleRepository ?? throw new ArgumentNullException(nameof(articleRepository));
+        _semanticSearchService = semanticSearchService;
     }
 
     public async Task<PagedResult<SearchArticleResultDto>> SearchArticlesAsync(
@@ -307,5 +312,286 @@ public sealed class SearchService : ISearchService
         }
 
         return string.Empty;
+    }
+
+    public async Task<PagedResult<SearchArticleResultDto>> HybridSearchArticlesAsync(
+        HybridSearchArticleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateHybridRequest(request);
+
+        var articles = await _articleRepository.GetAllAsync(cancellationToken);
+
+        var trimmedQuery = request.Query?.Trim();
+        var hasQuery = !string.IsNullOrWhiteSpace(trimmedQuery);
+        var terms = hasQuery
+            ? trimmedQuery!.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            : Array.Empty<string>();
+
+        var filteredArticles = articles
+            .Where(a => MatchesHybridFilters(a, request))
+            .ToList();
+
+        if (filteredArticles.Count == 0)
+        {
+            return PagedResult<SearchArticleResultDto>.Empty(request.Page, request.PageSize);
+        }
+
+        if (!hasQuery)
+        {
+            var noQueryScored = filteredArticles
+                .Select(a => (Article: a, KeywordScore: 0.0, SemanticScore: 0.0, HybridScore: 0.0))
+                .ToList();
+
+            return BuildPagedHybridResult(noQueryScored, request.SortBy, request.Page, request.PageSize, terms);
+        }
+
+        var keywordScores = new Dictionary<Guid, int>();
+        int maxKeywordScore = 0;
+
+        foreach (var article in filteredArticles)
+        {
+            var score = ComputeRelevanceScore(article, trimmedQuery!, terms);
+            keywordScores[article.Id] = score;
+            if (score > maxKeywordScore)
+            {
+                maxKeywordScore = score;
+            }
+        }
+
+        var semanticScores = new Dictionary<Guid, double>();
+        if (_semanticSearchService != null && request.Options.SemanticWeight > 0.0)
+        {
+            var semanticResults = await _semanticSearchService.SearchAsync(
+                new SemanticSearchRequest
+                {
+                    Query = trimmedQuery!,
+                    TopK = 100,
+                    ProductId = request.ProductId,
+                    TechnologyId = request.TechnologyId,
+                    KnowledgeTypeId = request.KnowledgeTypeId,
+                    TagId = request.TagId,
+                    Status = request.Status,
+                    VerificationStatus = request.VerificationStatus
+                },
+                cancellationToken);
+
+            foreach (var result in semanticResults)
+            {
+                if (result.ArticleId.HasValue)
+                {
+                    if (!semanticScores.TryGetValue(result.ArticleId.Value, out var existingSim) || result.SimilarityScore > existingSim)
+                    {
+                        semanticScores[result.ArticleId.Value] = result.SimilarityScore;
+                    }
+                }
+            }
+        }
+
+        var candidates = new List<(KnowledgeArticle Article, double KeywordScore, double SemanticScore, double HybridScore)>();
+
+        foreach (var article in filteredArticles)
+        {
+            var rawKeyword = keywordScores[article.Id];
+            var normKeyword = maxKeywordScore > 0 ? (double)rawKeyword / maxKeywordScore : 0.0;
+            semanticScores.TryGetValue(article.Id, out var normSemantic);
+
+            if (rawKeyword <= 0 && normSemantic <= 0.0)
+            {
+                continue;
+            }
+
+            var hybridScore = (request.Options.KeywordWeight * normKeyword) +
+                              (request.Options.SemanticWeight * normSemantic);
+
+            if (article.VerificationStatus == VerificationStatus.Verified)
+            {
+                hybridScore *= request.Options.VerifiedBoost;
+            }
+
+            candidates.Add((article, normKeyword, normSemantic, hybridScore));
+        }
+
+        return BuildPagedHybridResult(candidates, request.SortBy, request.Page, request.PageSize, terms);
+    }
+
+    private static void ValidateHybridRequest(HybridSearchArticleRequest request)
+    {
+        if (request is null)
+        {
+            throw new ValidationException("Hybrid search request cannot be null.");
+        }
+
+        if (request.Page < 1)
+        {
+            throw new ValidationException("Page number must be at least 1.");
+        }
+
+        if (request.PageSize < 1 || request.PageSize > 100)
+        {
+            throw new ValidationException("Page size must be between 1 and 100.");
+        }
+
+        if (request.ProductId == Guid.Empty)
+        {
+            throw new ValidationException("ProductId cannot be an empty GUID.");
+        }
+
+        if (request.TechnologyId == Guid.Empty)
+        {
+            throw new ValidationException("TechnologyId cannot be an empty GUID.");
+        }
+
+        if (request.KnowledgeTypeId == Guid.Empty)
+        {
+            throw new ValidationException("KnowledgeTypeId cannot be an empty GUID.");
+        }
+
+        if (request.TagId == Guid.Empty)
+        {
+            throw new ValidationException("TagId cannot be an empty GUID.");
+        }
+
+        if (!Enum.IsDefined(typeof(SearchSortOption), request.SortBy))
+        {
+            throw new ValidationException("Invalid sort option.");
+        }
+
+        if (request.Status.HasValue && !Enum.IsDefined(typeof(KnowledgeStatus), request.Status.Value))
+        {
+            throw new ValidationException("Invalid knowledge status filter.");
+        }
+
+        if (request.VerificationStatus.HasValue && !Enum.IsDefined(typeof(VerificationStatus), request.VerificationStatus.Value))
+        {
+            throw new ValidationException("Invalid verification status filter.");
+        }
+
+        if (request.Options is null)
+        {
+            throw new ValidationException("HybridSearchOptions cannot be null.");
+        }
+
+        request.Options.Validate();
+    }
+
+    private static bool MatchesHybridFilters(KnowledgeArticle article, HybridSearchArticleRequest request)
+    {
+        if (request.Status.HasValue && article.Status != request.Status.Value)
+        {
+            return false;
+        }
+
+        if (request.VerificationStatus.HasValue && article.VerificationStatus != request.VerificationStatus.Value)
+        {
+            return false;
+        }
+
+        if (request.ProductId.HasValue && !article.ProductIds.Contains(request.ProductId.Value))
+        {
+            return false;
+        }
+
+        if (request.TechnologyId.HasValue && !article.TechnologyIds.Contains(request.TechnologyId.Value))
+        {
+            return false;
+        }
+
+        if (request.KnowledgeTypeId.HasValue && article.KnowledgeTypeId != request.KnowledgeTypeId.Value)
+        {
+            return false;
+        }
+
+        if (request.TagId.HasValue && !article.TagIds.Contains(request.TagId.Value))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static PagedResult<SearchArticleResultDto> BuildPagedHybridResult(
+        List<(KnowledgeArticle Article, double KeywordScore, double SemanticScore, double HybridScore)> candidates,
+        SearchSortOption sortBy,
+        int page,
+        int pageSize,
+        string[] terms)
+    {
+        var sorted = sortBy switch
+        {
+            SearchSortOption.Relevance =>
+                candidates
+                    .OrderByDescending(c => c.HybridScore)
+                    .ThenByDescending(c => c.Article.UpdatedAt ?? c.Article.CreatedAt)
+                    .ThenBy(c => c.Article.Title, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+
+            SearchSortOption.RecentlyUpdated =>
+                candidates
+                    .OrderByDescending(c => c.Article.UpdatedAt ?? c.Article.CreatedAt)
+                    .ThenBy(c => c.Article.Title, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+
+            SearchSortOption.RecentlyCreated =>
+                candidates
+                    .OrderByDescending(c => c.Article.CreatedAt)
+                    .ThenBy(c => c.Article.Title, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+
+            SearchSortOption.TitleAsc =>
+                candidates
+                    .OrderBy(c => c.Article.Title, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+
+            SearchSortOption.TitleDesc =>
+                candidates
+                    .OrderByDescending(c => c.Article.Title, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+
+            _ => candidates
+        };
+
+        var totalCount = sorted.Count;
+        if (totalCount == 0)
+        {
+            return PagedResult<SearchArticleResultDto>.Empty(page, pageSize);
+        }
+
+        var paged = sorted
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(c => MapToHybridResultDto(c.Article, terms, c.KeywordScore, c.SemanticScore, c.HybridScore))
+            .ToList();
+
+        return new PagedResult<SearchArticleResultDto>(paged, page, pageSize, totalCount);
+    }
+
+    private static SearchArticleResultDto MapToHybridResultDto(
+        KnowledgeArticle article,
+        string[] terms,
+        double keywordScore,
+        double semanticScore,
+        double hybridScore)
+    {
+        var excerpt = GenerateExcerpt(article, terms);
+
+        return new SearchArticleResultDto(
+            article.Id,
+            article.Title,
+            article.Slug.Value,
+            article.Summary,
+            excerpt,
+            article.KnowledgeTypeId,
+            article.Status,
+            article.VerificationStatus,
+            article.ProductIds,
+            article.TechnologyIds,
+            article.TagIds,
+            article.CreatedAt,
+            article.UpdatedAt,
+            article.PublishedAt,
+            KeywordScore: keywordScore,
+            SemanticScore: semanticScore,
+            HybridScore: hybridScore);
     }
 }

@@ -3,14 +3,18 @@ namespace EngineeringKnowledgeHub.Application.Documents;
 using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.Common.Interfaces;
 using EngineeringKnowledgeHub.Application.DTOs;
+using EngineeringKnowledgeHub.Application.SemanticSearch;
 using EngineeringKnowledgeHub.Domain.Entities;
+using EngineeringKnowledgeHub.Domain.Enums;
 
 public sealed class DocumentService(
     IDocumentRepository documentRepository,
     IKnowledgeSourceRepository sourceRepository,
     IFileHasher fileHasher,
     IDocumentTextExtractor textExtractor,
-    IDateTimeProvider dateTimeProvider) : IDocumentService
+    IDateTimeProvider dateTimeProvider,
+    ITextChunker? textChunker = null,
+    IDocumentChunkRepository? chunkRepository = null) : IDocumentService
 {
     public async Task<DocumentDto> UploadDocumentAsync(
         UploadDocumentCommand command,
@@ -154,5 +158,36 @@ public sealed class DocumentService(
         await documentRepository.UpdateAsync(document, cancellationToken);
 
         return DocumentDto.FromDomain(document);
+    }
+
+    public async Task<IReadOnlyList<DocumentChunkDto>> ChunkDocumentAsync(
+        Guid documentId,
+        ChunkingOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (documentId == Guid.Empty)
+        {
+            throw new ValidationException("Document Id cannot be empty.");
+        }
+
+        var document = await documentRepository.GetByIdAsync(documentId, cancellationToken)
+            ?? throw new NotFoundException("Document", documentId);
+
+        if (document.ProcessingStatus != DocumentProcessingStatus.Processed ||
+            string.IsNullOrWhiteSpace(document.ExtractedText))
+        {
+            throw new ValidationException("Cannot chunk document that has not been successfully processed or contains no extracted text.");
+        }
+
+        var chunker = textChunker ?? new TextChunker();
+        var chunks = chunker.ChunkDocument(documentId, document.ExtractedText, options, dateTimeProvider.UtcNow);
+
+        if (chunkRepository != null && chunks.Count > 0)
+        {
+            await chunkRepository.DeleteByDocumentIdAsync(documentId, cancellationToken);
+            await chunkRepository.AddRangeAsync(chunks, cancellationToken);
+        }
+
+        return chunks.Select(DocumentChunkDto.FromDomain).ToList();
     }
 }

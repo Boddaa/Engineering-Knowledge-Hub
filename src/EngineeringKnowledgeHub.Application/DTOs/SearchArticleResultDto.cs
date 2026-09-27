@@ -20,4 +20,7 @@ public sealed record SearchArticleResultDto(
     IReadOnlyCollection<Guid> TagIds,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    DateTimeOffset? PublishedAt);
+    DateTimeOffset? PublishedAt,
+    double? KeywordScore = null,
+    double? SemanticScore = null,
+    double? HybridScore = null);

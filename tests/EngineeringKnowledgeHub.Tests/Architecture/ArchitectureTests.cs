@@ -97,5 +97,58 @@ public class ArchitectureTests
             Assert.Contains(interfaces, i => i.Name == $"I{serviceType.Name}");
         }
     }
+
+    [Fact]
+    public void Domain_Should_Not_Depend_On_AI_Or_Vector_SDKs()
+    {
+        var referencedAssemblies = DomainAssembly.GetReferencedAssemblies();
+        var forbiddenPrefixes = new[] { "OpenAI", "Ollama", "Qdrant", "Pinecone", "Milvus", "Weaviate", "Azure.AI", "Microsoft.SemanticKernel" };
+
+        foreach (var assembly in referencedAssemblies)
+        {
+            foreach (var forbidden in forbiddenPrefixes)
+            {
+                Assert.DoesNotContain(forbidden, assembly.Name ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
+    public void Application_Should_Not_Depend_On_Concrete_AI_Or_Vector_SDKs()
+    {
+        var referencedAssemblies = ApplicationAssembly.GetReferencedAssemblies();
+        var forbiddenPrefixes = new[] { "OpenAI", "Ollama", "Qdrant", "Pinecone", "Milvus", "Weaviate", "Azure.AI", "Microsoft.SemanticKernel" };
+
+        foreach (var assembly in referencedAssemblies)
+        {
+            foreach (var forbidden in forbiddenPrefixes)
+            {
+                Assert.DoesNotContain(forbidden, assembly.Name ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
+    public void EmbeddingProvider_And_VectorStore_Should_Be_Replaceable_Abstractions()
+    {
+        var embeddingInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.SemanticSearch.IEmbeddingProvider");
+        var vectorStoreInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.SemanticSearch.IVectorStore");
+        var semanticSearchServiceType = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.SemanticSearch.SemanticSearchService");
+
+        Assert.NotNull(embeddingInterface);
+        Assert.True(embeddingInterface.IsInterface);
+
+        Assert.NotNull(vectorStoreInterface);
+        Assert.True(vectorStoreInterface.IsInterface);
+
+        Assert.NotNull(semanticSearchServiceType);
+        var ctors = semanticSearchServiceType.GetConstructors();
+        Assert.NotEmpty(ctors);
+
+        var paramTypes = ctors[0].GetParameters().Select(p => p.ParameterType).ToList();
+        Assert.Contains(embeddingInterface, paramTypes);
+        Assert.Contains(vectorStoreInterface, paramTypes);
+    }
 }
+
 
