@@ -149,6 +149,61 @@ public class ArchitectureTests
         Assert.Contains(embeddingInterface, paramTypes);
         Assert.Contains(vectorStoreInterface, paramTypes);
     }
+
+    [Fact]
+    public void AiProvider_Retriever_ContextBuilder_And_RagService_Should_Be_Replaceable_Abstractions()
+    {
+        var aiProviderInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Rag.IAiProvider");
+        var retrieverInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Rag.IKnowledgeRetriever");
+        var contextBuilderInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Rag.IContextBuilder");
+        var ragServiceInterface = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Rag.IRagService");
+        var ragServiceType = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Rag.RagService");
+
+        Assert.NotNull(aiProviderInterface);
+        Assert.True(aiProviderInterface.IsInterface);
+
+        Assert.NotNull(retrieverInterface);
+        Assert.True(retrieverInterface.IsInterface);
+
+        Assert.NotNull(contextBuilderInterface);
+        Assert.True(contextBuilderInterface.IsInterface);
+
+        Assert.NotNull(ragServiceInterface);
+        Assert.True(ragServiceInterface.IsInterface);
+
+        Assert.NotNull(ragServiceType);
+        var ctors = ragServiceType.GetConstructors();
+        Assert.NotEmpty(ctors);
+
+        var paramTypes = ctors[0].GetParameters().Select(p => p.ParameterType).ToList();
+        Assert.Contains(aiProviderInterface, paramTypes);
+        Assert.Contains(retrieverInterface, paramTypes);
+        Assert.Contains(contextBuilderInterface, paramTypes);
+    }
+
+    [Fact]
+    public void RagService_Should_Not_Depend_On_Knowledge_Article_Mutation_Repositories()
+    {
+        var ragServiceType = ApplicationAssembly.GetType("EngineeringKnowledgeHub.Application.Rag.RagService");
+        Assert.NotNull(ragServiceType);
+
+        var ctors = ragServiceType.GetConstructors();
+        Assert.NotEmpty(ctors);
+
+        var paramTypes = ctors[0].GetParameters().Select(p => p.ParameterType).ToList();
+        var forbiddenTypes = new[]
+        {
+            "IKnowledgeArticleRepository",
+            "IKnowledgeGovernanceService",
+            "IKnowledgeVersionRepository",
+            "IAuditLogRepository"
+        };
+
+        foreach (var paramType in paramTypes)
+        {
+            Assert.DoesNotContain(forbiddenTypes, forbidden => forbidden == paramType.Name);
+        }
+    }
 }
 
 
