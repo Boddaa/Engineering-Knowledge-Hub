@@ -2,9 +2,7 @@ namespace EngineeringKnowledgeHub.Tests.Application;
 
 using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.Governance;
-using EngineeringKnowledgeHub.Domain.Constants;
 using EngineeringKnowledgeHub.Domain.Entities;
-using EngineeringKnowledgeHub.Domain.Enums;
 using EngineeringKnowledgeHub.Domain.ValueObjects;
 using EngineeringKnowledgeHub.Tests.Common;
 using Xunit;
@@ -49,182 +47,17 @@ public class KnowledgeGovernanceServiceTests
     }
 
     [Fact]
-    public async Task CreateVersion_WithAutomaticNumbering_ShouldStartAtOneAndIncrement()
-    {
-        var article = CreateSampleArticle();
-
-        var v1 = await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-            article.Id,
-            _editorId,
-            "Initial published snapshot"));
-
-        Assert.Equal(1, v1.VersionNumber);
-        Assert.Equal(article.Id, v1.ArticleId);
-        Assert.Equal(article.Title, v1.Title);
-        Assert.Equal(article.Content, v1.Content);
-        Assert.Equal(_editorId, v1.ChangedById);
-        Assert.Equal("Initial published snapshot", v1.ChangeSummary);
-        Assert.Equal(_initialTime, v1.CreatedAt);
-
-        // Advance time and create second version
-        _dateTimeProvider.UtcNow = _initialTime.AddHours(2);
-        var v2 = await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-            article.Id,
-            _editorId,
-            "Second revision with updates",
-            Content: "Updated Content"));
-
-        Assert.Equal(2, v2.VersionNumber);
-        Assert.Equal("Updated Content", v2.Content);
-        Assert.Equal(_initialTime.AddHours(2), v2.CreatedAt);
-    }
-
-    [Fact]
-    public async Task CreateVersion_ShouldRecordAuditLogAutomatically()
-    {
-        var article = CreateSampleArticle();
-
-        var version = await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-            article.Id,
-            _editorId,
-            "First release"));
-
-        var logs = await _auditRepo.GetByEntityAsync(nameof(KnowledgeVersion), version.Id);
-        Assert.Single(logs);
-
-        var log = logs[0];
-        Assert.Equal(_editorId, log.UserId);
-        Assert.Equal(GovernanceAuditActions.KnowledgeVersionCreated, log.Action);
-        Assert.Equal(nameof(KnowledgeVersion), log.EntityName);
-        Assert.Equal(version.Id, log.EntityId);
-        Assert.Contains("Version 1 created for article", log.Details);
-        Assert.Equal(_initialTime, log.CreatedAt);
-    }
-
-    [Fact]
-    public async Task CreateVersion_WhenArticleNotFound_ShouldThrowNotFoundException()
-    {
-        var missingArticleId = Guid.NewGuid();
-
-        await Assert.ThrowsAsync<NotFoundException>(() =>
-            _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-                missingArticleId,
-                _editorId,
-                "Snapshot")));
-    }
-
-    [Fact]
-    public async Task CreateVersion_WithEmptyArticleId_ShouldThrowValidationException()
-    {
-        await Assert.ThrowsAsync<ValidationException>(() =>
-            _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-                Guid.Empty,
-                _editorId,
-                "Snapshot")));
-    }
-
-    [Fact]
-    public async Task CreateVersion_WithEmptyChangedById_ShouldThrowValidationException()
-    {
-        var article = CreateSampleArticle();
-
-        await Assert.ThrowsAsync<ValidationException>(() =>
-            _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-                article.Id,
-                Guid.Empty,
-                "Snapshot")));
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task CreateVersion_WithNullOrWhitespaceChangeSummary_ShouldThrowValidationException(string? invalidSummary)
-    {
-        var article = CreateSampleArticle();
-
-        await Assert.ThrowsAsync<ValidationException>(() =>
-            _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-                article.Id,
-                _editorId,
-                invalidSummary!)));
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public async Task CreateVersion_WithZeroOrNegativeVersionNumber_ShouldThrowValidationException(int invalidNumber)
-    {
-        var article = CreateSampleArticle();
-
-        await Assert.ThrowsAsync<ValidationException>(() =>
-            _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-                article.Id,
-                _editorId,
-                "Snapshot",
-                VersionNumber: invalidNumber)));
-    }
-
-    [Fact]
-    public async Task CreateVersion_WithDuplicateVersionNumberForSameArticle_ShouldThrowConflictException()
-    {
-        var article = CreateSampleArticle();
-
-        // Version 1 created explicitly
-        await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-            article.Id,
-            _editorId,
-            "First release",
-            VersionNumber: 1));
-
-        // Attempting to create Version 1 again for Article A -> Conflict
-        var ex = await Assert.ThrowsAsync<ConflictException>(() =>
-            _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-                article.Id,
-                _editorId,
-                "Duplicate version 1",
-                VersionNumber: 1)));
-
-        Assert.Contains("Version 1 already exists", ex.Message);
-    }
-
-    [Fact]
-    public async Task CreateVersion_SameVersionNumberAcrossDifferentArticles_ShouldBothSucceed()
-    {
-        var articleA = CreateSampleArticle("Article Alpha");
-        var articleB = CreateSampleArticle("Article Beta");
-
-        var vA1 = await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-            articleA.Id,
-            _editorId,
-            "Alpha Version 1",
-            VersionNumber: 1));
-
-        var vB1 = await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(
-            articleB.Id,
-            _editorId,
-            "Beta Version 1",
-            VersionNumber: 1));
-
-        Assert.Equal(1, vA1.VersionNumber);
-        Assert.Equal(1, vB1.VersionNumber);
-        Assert.NotEqual(vA1.Id, vB1.Id);
-        Assert.NotEqual(vA1.ArticleId, vB1.ArticleId);
-    }
-
-    [Fact]
     public async Task GetVersionHistory_ShouldReturnDeterministicOrder_VersionNumberDescending()
     {
         var article = CreateSampleArticle();
 
-        _dateTimeProvider.UtcNow = _initialTime;
-        await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(article.Id, _editorId, "V1", Content: "Content 1"));
+        var v1 = new KnowledgeVersion(Guid.NewGuid(), article.Id, 1, article.Title, "Content 1", _editorId, "V1", _initialTime);
+        var v2 = new KnowledgeVersion(Guid.NewGuid(), article.Id, 2, article.Title, "Content 2", _editorId, "V2", _initialTime.AddDays(1));
+        var v3 = new KnowledgeVersion(Guid.NewGuid(), article.Id, 3, article.Title, "Content 3", _editorId, "V3", _initialTime.AddDays(2));
 
-        _dateTimeProvider.UtcNow = _initialTime.AddDays(1);
-        await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(article.Id, _editorId, "V2", Content: "Content 2"));
-
-        _dateTimeProvider.UtcNow = _initialTime.AddDays(2);
-        await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(article.Id, _editorId, "V3", Content: "Content 3"));
+        await _versionRepo.AddAsync(v1);
+        await _versionRepo.AddAsync(v2);
+        await _versionRepo.AddAsync(v3);
 
         var history = await _service.GetVersionHistoryAsync(article.Id);
 
@@ -242,12 +75,22 @@ public class KnowledgeGovernanceServiceTests
     }
 
     [Fact]
+    public async Task GetVersionHistory_WithEmptyArticleId_ShouldThrowValidationException()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _service.GetVersionHistoryAsync(Guid.Empty));
+    }
+
+    [Fact]
     public async Task GetVersionByNumber_WhenFound_ShouldReturnCorrectVersion()
     {
         var article = CreateSampleArticle();
 
-        await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(article.Id, _editorId, "V1", Content: "Content 1"));
-        await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(article.Id, _editorId, "V2", Content: "Content 2"));
+        var v1 = new KnowledgeVersion(Guid.NewGuid(), article.Id, 1, article.Title, "Content 1", _editorId, "V1", _initialTime);
+        var v2 = new KnowledgeVersion(Guid.NewGuid(), article.Id, 2, article.Title, "Content 2", _editorId, "V2", _initialTime.AddDays(1));
+
+        await _versionRepo.AddAsync(v1);
+        await _versionRepo.AddAsync(v2);
 
         var result = await _service.GetVersionByNumberAsync(article.Id, 2);
 
@@ -265,18 +108,30 @@ public class KnowledgeGovernanceServiceTests
             _service.GetVersionByNumberAsync(article.Id, 99));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task GetVersionByNumber_WithZeroOrNegativeVersionNumber_ShouldThrowValidationException(int invalidNumber)
+    {
+        var article = CreateSampleArticle();
+
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _service.GetVersionByNumberAsync(article.Id, invalidNumber));
+    }
+
     [Fact]
     public async Task GetVersionById_WhenFound_ShouldReturnCorrectVersion()
     {
         var article = CreateSampleArticle();
 
-        var created = await _service.CreateVersionAsync(new CreateKnowledgeVersionCommand(article.Id, _editorId, "V1"));
+        var v1 = new KnowledgeVersion(Guid.NewGuid(), article.Id, 1, article.Title, "Content 1", _editorId, "V1", _initialTime);
+        await _versionRepo.AddAsync(v1);
 
-        var fetched = await _service.GetVersionByIdAsync(created.Id);
+        var fetched = await _service.GetVersionByIdAsync(v1.Id);
 
         Assert.NotNull(fetched);
-        Assert.Equal(created.Id, fetched.Id);
-        Assert.Equal(created.VersionNumber, fetched.VersionNumber);
+        Assert.Equal(v1.Id, fetched.Id);
+        Assert.Equal(v1.VersionNumber, fetched.VersionNumber);
     }
 
     [Fact]
@@ -284,6 +139,13 @@ public class KnowledgeGovernanceServiceTests
     {
         await Assert.ThrowsAsync<NotFoundException>(() =>
             _service.GetVersionByIdAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task GetVersionById_WithEmptyVersionId_ShouldThrowValidationException()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _service.GetVersionByIdAsync(Guid.Empty));
     }
 
     [Fact]
@@ -349,5 +211,21 @@ public class KnowledgeGovernanceServiceTests
         Assert.Equal(2, userLogs.Count);
         Assert.Equal("ActionB", userLogs[0].Action);
         Assert.Equal("ActionA", userLogs[1].Action);
+    }
+
+    [Fact]
+    public async Task GetAllAuditLogs_ShouldReturnAllLogsInCreatedAtDescendingOrder()
+    {
+        _dateTimeProvider.UtcNow = _initialTime;
+        await _service.RecordAuditLogAsync(new RecordAuditLogCommand(_editorId, "Action1", "Entity1", Guid.NewGuid(), "1"));
+
+        _dateTimeProvider.UtcNow = _initialTime.AddMinutes(15);
+        await _service.RecordAuditLogAsync(new RecordAuditLogCommand(_editorId, "Action2", "Entity2", Guid.NewGuid(), "2"));
+
+        var allLogs = await _service.GetAllAuditLogsAsync();
+
+        Assert.Equal(2, allLogs.Count);
+        Assert.Equal("Action2", allLogs[0].Action);
+        Assert.Equal("Action1", allLogs[1].Action);
     }
 }

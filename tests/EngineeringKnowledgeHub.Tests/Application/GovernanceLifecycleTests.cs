@@ -1,6 +1,7 @@
 namespace EngineeringKnowledgeHub.Tests.Application;
 
 using System.Reflection;
+using EngineeringKnowledgeHub.Application;
 using EngineeringKnowledgeHub.Application.Articles;
 using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.Governance;
@@ -70,7 +71,7 @@ public class GovernanceLifecycleTests
     }
 
     [Fact]
-    public async Task Test1_Draft_To_PendingReview_To_Approve_MustAlwaysCreatePublishedState_Version1_AndBothAuditRecords()
+    public async Task TestA_SuccessfulApproval_MustCreatePublishedArticle_Version1_AndBothAuditRecords()
     {
         var article = await CreateDraftArticleAsync();
 
@@ -121,7 +122,7 @@ public class GovernanceLifecycleTests
     }
 
     [Fact]
-    public async Task Test2_ApproveSameArticleAgainAfterEditCycle_MustCreateVersion2_WhileVersion1RemainsUnchanged()
+    public async Task TestB_SecondGovernedApproval_MustCreateVersion2_WhileVersion1RemainsUnchanged()
     {
         var article = await CreateDraftArticleAsync();
 
@@ -177,43 +178,29 @@ public class GovernanceLifecycleTests
     }
 
     [Fact]
-    public async Task Test3_VersionSnapshot_MustContainTitleContentReviewerChangeSummaryAndCreatedAtFromPublishedState()
+    public void TestC_CallerCannotSupplyPublicationVersionNumberThroughApprovalApi()
     {
-        var article = await CreateDraftArticleAsync("Specific Calibration Title");
-        await _articleService.SubmitForReviewAsync(article.Id);
+        // Verify via reflection that ApproveKnowledgeArticleCommand does not expose a VersionNumber or CreateVersion property
+        var versionNumberProp = typeof(ApproveKnowledgeArticleCommand)
+            .GetProperty("VersionNumber", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 
-        var approvalTime = _initialTime.AddHours(5);
-        _dateTimeProvider.UtcNow = approvalTime;
-
-        await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(
-            article.Id,
-            _reviewerId,
-            ChangeSummary: "Custom verified change summary"));
-
-        var version = await _versionRepo.GetByArticleAndVersionNumberAsync(article.Id, 1);
-        Assert.NotNull(version);
-
-        Assert.Equal(article.Id, version.ArticleId);
-        Assert.Equal(1, version.VersionNumber);
-        Assert.Equal("Specific Calibration Title", version.Title);
-        Assert.Equal(article.Content, version.Content);
-        Assert.Equal(_reviewerId, version.ChangedById);
-        Assert.Equal("Custom verified change summary", version.ChangeSummary);
-        Assert.Equal(approvalTime, version.CreatedAt);
-    }
-
-    [Fact]
-    public void Test4_ApproveKnowledgeArticleCommand_CannotExposeBypassOption()
-    {
-        // Verify via reflection that ApproveKnowledgeArticleCommand does not expose a CreateVersion property
         var createVersionProp = typeof(ApproveKnowledgeArticleCommand)
             .GetProperty("CreateVersion", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 
+        Assert.Null(versionNumberProp);
         Assert.Null(createVersionProp);
+
+        // Verify that ApproveKnowledgeArticleCommand constructor only accepts ArticleId, ReviewerId, and ChangeSummary
+        var constructors = typeof(ApproveKnowledgeArticleCommand).GetConstructors();
+        foreach (var ctor in constructors)
+        {
+            var parameters = ctor.GetParameters();
+            Assert.DoesNotContain(parameters, p => p.Name?.Contains("version", StringComparison.OrdinalIgnoreCase) == true && p.ParameterType == typeof(int));
+        }
     }
 
     [Fact]
-    public async Task Test5_PeerReviewMandatory_AuthorCannotApproveOwnArticle()
+    public async Task TestD_PeerReviewMandatory_AuthorCannotApproveOwnArticle_AndNoVersionIsCreated()
     {
         var article = await CreateDraftArticleAsync();
         await _articleService.SubmitForReviewAsync(article.Id);
@@ -228,7 +215,40 @@ public class GovernanceLifecycleTests
     }
 
     [Fact]
-    public async Task Test6_RejectionDeprecationAndArchiveBehavior_RemainUnchanged()
+    public async Task TestE_ExistingVersionHistoryReadBehavior_RemainsIntact()
+    {
+        var article = await CreateDraftArticleAsync("Read Behavior Verification");
+        await _articleService.SubmitForReviewAsync(article.Id);
+
+        var approvalTime = _initialTime.AddHours(5);
+        _dateTimeProvider.UtcNow = approvalTime;
+
+        await _articleService.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(
+            article.Id,
+            _reviewerId,
+            ChangeSummary: "Initial publication"));
+
+        // 1. GetVersionHistoryAsync
+        var history = await _governanceService.GetVersionHistoryAsync(article.Id);
+        Assert.Single(history);
+        Assert.Equal(1, history[0].VersionNumber);
+        Assert.Equal("Read Behavior Verification", history[0].Title);
+
+        // 2. GetVersionByNumberAsync
+        var byNumber = await _governanceService.GetVersionByNumberAsync(article.Id, 1);
+        Assert.NotNull(byNumber);
+        Assert.Equal(1, byNumber.VersionNumber);
+        Assert.Equal(article.Content, byNumber.Content);
+        Assert.Equal(_reviewerId, byNumber.ChangedById);
+
+        // 3. GetVersionByIdAsync
+        var byId = await _governanceService.GetVersionByIdAsync(byNumber.Id);
+        Assert.NotNull(byId);
+        Assert.Equal(byNumber.Id, byId.Id);
+    }
+
+    [Fact]
+    public async Task TestF_ExistingRejectionDeprecationAndArchiveBehavior_RemainIntact()
     {
         var article = await CreateDraftArticleAsync();
 
@@ -266,6 +286,37 @@ public class GovernanceLifecycleTests
         var archiveAudits = await _auditRepo.GetByEntityAsync(nameof(KnowledgeArticle), article.Id);
         var archiveAudit = Assert.Single(archiveAudits, a => a.Action == GovernanceAuditActions.ArticleArchived);
         Assert.Equal(_deprecatorId, archiveAudit.UserId);
+    }
+
+    [Fact]
+    public void TestG_NoPublicApplicationApiAllowsCallersToCreatePublicationVersionWithCallerSelectedVersionNumber()
+    {
+        var appAssembly = typeof(ApplicationAssemblyMarker).Assembly;
+
+        // Verify CreateKnowledgeVersionCommand type does not exist anywhere in Application assembly
+        var createCommandType = appAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "CreateKnowledgeVersionCommand");
+        Assert.Null(createCommandType);
+
+        // Verify IKnowledgeGovernanceService has no CreateVersionAsync method
+        var govServiceMethods = typeof(IKnowledgeGovernanceService).GetMethods();
+        Assert.DoesNotContain(govServiceMethods, m => m.Name == "CreateVersionAsync");
+
+        // Verify no public service method in Application assembly allows passing a caller-selected VersionNumber
+        var allPublicMethods = appAssembly.GetTypes()
+            .Where(t => t.IsPublic && t.IsClass && t.Name.EndsWith("Service"))
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+
+        foreach (var method in allPublicMethods)
+        {
+            var parameters = method.GetParameters();
+
+            // No method should have a parameter named "versionNumber" or "version" intended for creation
+            Assert.DoesNotContain(parameters, p =>
+                (p.Name?.Equals("versionNumber", StringComparison.OrdinalIgnoreCase) == true ||
+                 p.Name?.Equals("version", StringComparison.OrdinalIgnoreCase) == true) &&
+                method.Name.StartsWith("Create", StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     [Fact]
