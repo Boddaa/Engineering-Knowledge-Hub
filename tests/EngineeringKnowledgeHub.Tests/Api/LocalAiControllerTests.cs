@@ -1,7 +1,9 @@
 namespace EngineeringKnowledgeHub.Tests.Api;
 
 using EngineeringKnowledgeHub.Api.Controllers;
+using EngineeringKnowledgeHub.Api.Models;
 using EngineeringKnowledgeHub.Application.Ai;
+using EngineeringKnowledgeHub.Application.Rag;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
@@ -17,9 +19,19 @@ public class LocalAiControllerTests
     }
 
     [Fact]
-    public async Task GetHealth_WhenServiceNull_ShouldReturnOkWithDisabledStatus()
+    public async Task GetHealth_WhenDisabled_ShouldReturnOkWithDisabledStatus()
     {
-        var controller = new LocalAiController(null);
+        var disabledDto = new LocalAiHealthDto(
+            Enabled: false,
+            RuntimeReachable: false,
+            GenerationModelConfigured: null,
+            GenerationModelAvailable: false,
+            EmbeddingModelConfigured: null,
+            EmbeddingModelAvailable: false,
+            Status: LocalAiHealthStatus.Disabled,
+            DiagnosticMessage: "Local AI is currently disabled in configuration.");
+
+        var controller = new LocalAiController(new FakeLocalAiHealthService(disabledDto), new DeterministicAiProvider());
 
         var actionResult = await controller.GetHealth();
 
@@ -42,7 +54,7 @@ public class LocalAiControllerTests
             Status: LocalAiHealthStatus.Healthy,
             DiagnosticMessage: "All systems healthy.");
 
-        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto));
+        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto), new DeterministicAiProvider());
 
         var actionResult = await controller.GetHealth();
 
@@ -65,7 +77,7 @@ public class LocalAiControllerTests
             Status: LocalAiHealthStatus.Unavailable,
             DiagnosticMessage: "Runtime unreachable at 127.0.0.1:11434.");
 
-        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto));
+        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto), new DeterministicAiProvider());
 
         var actionResult = await controller.GetHealth();
 
@@ -88,7 +100,7 @@ public class LocalAiControllerTests
             Status: LocalAiHealthStatus.ModelUnavailable,
             DiagnosticMessage: "Generation model 'llama3' is unavailable.");
 
-        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto));
+        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto), new DeterministicAiProvider());
 
         var actionResult = await controller.GetHealth();
 
@@ -111,7 +123,7 @@ public class LocalAiControllerTests
             Status: LocalAiHealthStatus.Misconfigured,
             DiagnosticMessage: "GenerationModel is required.");
 
-        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto));
+        var controller = new LocalAiController(new FakeLocalAiHealthService(healthDto), new DeterministicAiProvider());
 
         var actionResult = await controller.GetHealth();
 
@@ -119,5 +131,20 @@ public class LocalAiControllerTests
         Assert.Equal(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
         var returnedDto = Assert.IsType<LocalAiHealthDto>(statusResult.Value);
         Assert.Equal(LocalAiHealthStatus.Misconfigured, returnedDto.Status);
+    }
+
+    [Fact]
+    public async Task Generate_WhenValidRequest_ShouldReturnOkWithResponse()
+    {
+        var disabledDto = new LocalAiHealthDto(false, false, null, false, null, false, LocalAiHealthStatus.Disabled, "");
+        var controller = new LocalAiController(new FakeLocalAiHealthService(disabledDto), new DeterministicAiProvider());
+
+        var request = new AiGenerateRequest("How do I implement lock ordering?");
+        var actionResult = await controller.Generate(request);
+
+        var okResult = Assert.IsType<OkObjectResult>(actionResult);
+        var response = Assert.IsType<AiResponse>(okResult.Value);
+        Assert.NotNull(response.Content);
+        Assert.NotEmpty(response.Content);
     }
 }
