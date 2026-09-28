@@ -1,6 +1,7 @@
 namespace EngineeringKnowledgeHub.Tests.Api;
 
 using EngineeringKnowledgeHub.Domain.Entities;
+using EngineeringKnowledgeHub.Domain.Enums;
 using EngineeringKnowledgeHub.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -18,6 +19,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     public Guid DefaultTagId { get; private set; }
     public Guid DefaultProductId { get; private set; }
     public Guid DefaultTechnologyId { get; private set; }
+    public Guid DefaultSourceId { get; private set; }
 
     public CustomWebApplicationFactory()
     {
@@ -57,6 +59,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
         DefaultTechnologyId = Guid.NewGuid();
         context.Technologies.Add(new Technology(DefaultTechnologyId, ".NET 10"));
+
+        DefaultSourceId = Guid.NewGuid();
+        context.KnowledgeSources.Add(new KnowledgeSource(
+            DefaultSourceId,
+            "Default Seed Source",
+            SourceType.Internal,
+            DateTimeOffset.UtcNow,
+            "https://internal.example.com/docs",
+            "Default test source",
+            TrustLevel.Verified,
+            isApproved: true));
 
         await context.SaveChangesAsync();
     }
