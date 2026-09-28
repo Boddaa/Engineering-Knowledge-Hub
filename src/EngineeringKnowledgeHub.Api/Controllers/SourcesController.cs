@@ -1,14 +1,12 @@
 namespace EngineeringKnowledgeHub.Api.Controllers;
 
 using EngineeringKnowledgeHub.Api.Models;
-using EngineeringKnowledgeHub.Application.Common.Exceptions;
 using EngineeringKnowledgeHub.Application.DTOs;
 using EngineeringKnowledgeHub.Application.Enrichment;
 using EngineeringKnowledgeHub.Application.Sources;
 using EngineeringKnowledgeHub.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Endpoints for managing knowledge sources, approval lifecycle, trust levels, article associations,
@@ -16,28 +14,12 @@ using Microsoft.Extensions.DependencyInjection;
 /// </summary>
 [ApiController]
 [Route("api/sources")]
-public sealed class SourcesController : ControllerBase
+public sealed class SourcesController(
+    IKnowledgeSourceService sourceService,
+    IExternalEnrichmentService enrichmentService) : ControllerBase
 {
-    private readonly IKnowledgeSourceService? _sourceService;
-    private readonly IExternalEnrichmentService? _enrichmentService;
-
-    [ActivatorUtilitiesConstructor]
-    public SourcesController(
-        IKnowledgeSourceService sourceService,
-        IExternalEnrichmentService? enrichmentService = null)
-    {
-        _sourceService = sourceService;
-        _enrichmentService = enrichmentService;
-    }
-
-    public SourcesController() : this(null!, null)
-    {
-    }
-
-    public SourcesController(IExternalEnrichmentService? enrichmentService)
-        : this(null!, enrichmentService)
-    {
-    }
+    private readonly IKnowledgeSourceService _sourceService = sourceService ?? throw new ArgumentNullException(nameof(sourceService));
+    private readonly IExternalEnrichmentService _enrichmentService = enrichmentService ?? throw new ArgumentNullException(nameof(enrichmentService));
 
     /// <summary>
     /// Registers a new knowledge source.
@@ -50,11 +32,6 @@ public sealed class SourcesController : ControllerBase
         [FromBody] CreateKnowledgeSourceRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var result = await _sourceService.CreateSourceAsync(request.ToCommand(), cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
@@ -75,11 +52,6 @@ public sealed class SourcesController : ControllerBase
             return EmptyGuidError("Source ID");
         }
 
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var source = await _sourceService.GetSourceByIdAsync(id, cancellationToken);
         return Ok(source);
     }
@@ -95,11 +67,6 @@ public sealed class SourcesController : ControllerBase
         [FromQuery] bool? isApproved = null,
         CancellationToken cancellationToken = default)
     {
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var sources = await _sourceService.GetSourcesAsync(sourceType, trustLevel, isApproved, cancellationToken);
         return Ok(sources);
     }
@@ -122,11 +89,6 @@ public sealed class SourcesController : ControllerBase
             return EmptyGuidError("Source ID");
         }
 
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var result = await _sourceService.UpdateSourceAsync(request.ToCommand(id), cancellationToken);
         return Ok(result);
     }
@@ -145,11 +107,6 @@ public sealed class SourcesController : ControllerBase
         if (id == Guid.Empty)
         {
             return EmptyGuidError("Source ID");
-        }
-
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
         }
 
         var result = await _sourceService.ApproveSourceAsync(id, cancellationToken);
@@ -172,11 +129,6 @@ public sealed class SourcesController : ControllerBase
             return EmptyGuidError("Source ID");
         }
 
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var result = await _sourceService.RevokeSourceApprovalAsync(id, cancellationToken);
         return Ok(result);
     }
@@ -196,11 +148,6 @@ public sealed class SourcesController : ControllerBase
         if (id == Guid.Empty)
         {
             return EmptyGuidError("Source ID");
-        }
-
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
         }
 
         var result = await _sourceService.UpdateTrustLevelAsync(request.ToCommand(id), cancellationToken);
@@ -232,11 +179,6 @@ public sealed class SourcesController : ControllerBase
             return EmptyGuidError("Article ID");
         }
 
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var command = (request ?? new AttachSourceRequest()).ToCommand(articleId, id);
         var result = await _sourceService.AttachSourceToArticleAsync(command, cancellationToken);
         return Ok(result);
@@ -265,11 +207,6 @@ public sealed class SourcesController : ControllerBase
             return EmptyGuidError("Article ID");
         }
 
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var command = new DetachArticleSourceCommand(articleId, id);
         var result = await _sourceService.DetachSourceFromArticleAsync(command, cancellationToken);
         return Ok(result);
@@ -292,11 +229,6 @@ public sealed class SourcesController : ControllerBase
             return EmptyGuidError("Article ID");
         }
 
-        if (_sourceService == null)
-        {
-            return ServiceUnavailable("Knowledge source service is not configured.");
-        }
-
         var sources = await _sourceService.GetSourcesByArticleIdAsync(articleId, cancellationToken);
         return Ok(sources);
     }
@@ -306,9 +238,8 @@ public sealed class SourcesController : ControllerBase
     /// </summary>
     [HttpPost("{id:guid}/import")]
     [ProducesResponseType<ExternalImportResultDto>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ImportFromSource(
         Guid id,
         [FromBody] ExternalImportCommand? command = null,
@@ -319,34 +250,8 @@ public sealed class SourcesController : ControllerBase
             return EmptyGuidError("Source ID");
         }
 
-        if (_enrichmentService == null)
-        {
-            return ServiceUnavailable("External enrichment service is not configured.");
-        }
-
-        try
-        {
-            var result = await _enrichmentService.ImportFromSourceAsync(id, command, cancellationToken);
-            return Ok(result);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Source Not Found",
-                Detail = ex.Message
-            });
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = ex.Message
-            });
-        }
+        var result = await _enrichmentService.ImportFromSourceAsync(id, command, cancellationToken);
+        return Ok(result);
     }
 
     private static BadRequestObjectResult EmptyGuidError(string fieldName) =>
@@ -356,15 +261,4 @@ public sealed class SourcesController : ControllerBase
             Title = "Validation Error",
             Detail = $"{fieldName} cannot be empty."
         });
-
-    private static ObjectResult ServiceUnavailable(string detail) =>
-        new(new ProblemDetails
-        {
-            Status = StatusCodes.Status503ServiceUnavailable,
-            Title = "Service Unavailable",
-            Detail = detail
-        })
-        {
-            StatusCode = StatusCodes.Status503ServiceUnavailable
-        };
 }

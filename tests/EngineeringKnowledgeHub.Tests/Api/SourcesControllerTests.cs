@@ -1,109 +1,128 @@
 namespace EngineeringKnowledgeHub.Tests.Api;
 
-using EngineeringKnowledgeHub.Api.Controllers;
-using EngineeringKnowledgeHub.Application.Common.Exceptions;
+using System.Net;
+using System.Net.Http.Json;
+using EngineeringKnowledgeHub.Api.Models;
 using EngineeringKnowledgeHub.Application.DTOs;
-using EngineeringKnowledgeHub.Application.Enrichment;
 using EngineeringKnowledgeHub.Domain.Enums;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
 
-public class SourcesControllerTests
+public class SourcesControllerTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private sealed class FakeEnrichmentService(
-        Func<Guid, ExternalImportCommand?, CancellationToken, Task<ExternalImportResultDto>> importFunc)
-        : IExternalEnrichmentService
-    {
-        public Task<ExternalImportResultDto> ImportFromSourceAsync(Guid sourceId, ExternalImportCommand? command = null, CancellationToken cancellationToken = default)
-        {
-            return importFunc(sourceId, command, cancellationToken);
-        }
+    private readonly CustomWebApplicationFactory _factory;
+    private readonly HttpClient _client;
 
-        public Task<KnowledgeArticleDto> ProposeArticleFromDocumentAsync(ProposeArticleFromDocumentCommand command, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
+    public SourcesControllerTests(CustomWebApplicationFactory factory)
+    {
+        _factory = factory;
+        _client = factory.CreateClient();
     }
 
     [Fact]
     public async Task ImportFromSource_WithEmptyId_ShouldReturnBadRequest()
     {
-        var controller = new SourcesController();
-        var result = await controller.ImportFromSource(Guid.Empty);
+        var response = await _client.PostAsync($"/api/sources/{Guid.Empty}/import", null);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var details = Assert.IsType<ProblemDetails>(badRequest.Value);
-        Assert.Equal(StatusCodes.Status400BadRequest, details.Status);
+        var details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(details);
+        Assert.Equal(400, details.Status);
+        Assert.Contains("Source ID cannot be empty", details.Detail);
     }
 
     [Fact]
-    public async Task ImportFromSource_WhenServiceUnconfigured_ShouldReturnServiceUnavailable()
+    public async Task ImportFromSource_WhenSourceNotFound_ShouldReturnNotFound_ViaGlobalExceptionHandler()
     {
-        var controller = new SourcesController(null);
-        var result = await controller.ImportFromSource(Guid.NewGuid());
+        var missingId = Guid.NewGuid();
+        var response = await _client.PostAsync($"/api/sources/{missingId}/import", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
-        var objectResult = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, objectResult.StatusCode);
+        var details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(details);
+        Assert.Equal(404, details.Status);
+        Assert.Equal("Not Found", details.Title);
+        Assert.Equal("https://tools.ietf.org/html/rfc7231#section-6.5.4", details.Type);
+        Assert.Equal($"/api/sources/{missingId}/import", details.Instance);
     }
 
     [Fact]
-    public async Task ImportFromSource_WhenSourceNotFound_ShouldReturnNotFound()
+    public async Task ImportFromSource_WhenSourceNotApproved_ShouldReturnBadRequest_ViaGlobalExceptionHandler()
     {
-        var service = new FakeEnrichmentService((id, _, _) =>
-            throw new NotFoundException("KnowledgeSource", id));
+        // 1. Create a source (defaults to unapproved)
+        var createResponse = await _client.PostAsJsonAsync("/api/sources", new CreateKnowledgeSourceRequest(
+            Name: $"Unapproved External Source {Guid.NewGuid():N}",
+            SourceType: SourceType.External,
+            Url: "https://docs.external.example.com",
+            Description: "Unapproved external docs"));
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
-        var controller = new SourcesController(service);
-        var result = await controller.ImportFromSource(Guid.NewGuid());
+        var source = await createResponse.Content.ReadFromJsonAsync<KnowledgeSourceDto>();
+        Assert.NotNull(source);
+        Assert.False(source.IsApproved);
 
-        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        var details = Assert.IsType<ProblemDetails>(notFoundResult.Value);
-        Assert.Equal(StatusCodes.Status404NotFound, details.Status);
+        // 2. Attempt import — should trigger Application ValidationException via GlobalExceptionHandler
+        var response = await _client.PostAsync($"/api/sources/{source.Id}/import", null);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(details);
+        Assert.Equal(400, details.Status);
+        Assert.Equal("Bad Request", details.Title);
+        Assert.Equal("https://tools.ietf.org/html/rfc7231#section-6.5.1", details.Type);
+        Assert.Contains("is not approved", details.Detail);
     }
 
     [Fact]
-    public async Task ImportFromSource_WhenValidationFails_ShouldReturnBadRequest()
+    public async Task ImportFromSource_WhenSourceTypeIneligible_ShouldReturnBadRequest_ViaGlobalExceptionHandler()
     {
-        var service = new FakeEnrichmentService((_, _, _) =>
-            throw new ValidationException("Source is not approved."));
+        // 1. Create an internal source
+        var createResponse = await _client.PostAsJsonAsync("/api/sources", new CreateKnowledgeSourceRequest(
+            Name: $"Internal Source {Guid.NewGuid():N}",
+            SourceType: SourceType.Internal,
+            Url: "https://internal.example.com",
+            Description: "Internal docs"));
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
-        var controller = new SourcesController(service);
-        var result = await controller.ImportFromSource(Guid.NewGuid());
+        var source = await createResponse.Content.ReadFromJsonAsync<KnowledgeSourceDto>();
+        Assert.NotNull(source);
 
-        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        var details = Assert.IsType<ProblemDetails>(badRequestResult.Value);
-        Assert.Equal(StatusCodes.Status400BadRequest, details.Status);
+        // 2. Approve it
+        var approveResponse = await _client.PostAsync($"/api/sources/{source.Id}/approve", null);
+        Assert.Equal(HttpStatusCode.OK, approveResponse.StatusCode);
+
+        // 3. Attempt import — should fail validation because Internal sources are ineligible for external import
+        var response = await _client.PostAsync($"/api/sources/{source.Id}/import", null);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(details);
+        Assert.Equal(400, details.Status);
+        Assert.Equal("Bad Request", details.Title);
+        Assert.Equal("https://tools.ietf.org/html/rfc7231#section-6.5.1", details.Type);
+        Assert.Contains("Only External and VendorDocumentation sources are eligible", details.Detail);
     }
 
     [Fact]
-    public async Task ImportFromSource_WhenSuccessful_ShouldReturnOkWithResultDto()
+    public async Task ImportFromSource_InProductionEnvironment_ShouldUseGlobalExceptionHandler_WithoutLeakingInternalDetails()
     {
-        var sourceId = Guid.NewGuid();
-        var expectedDto = new ExternalImportResultDto(
-            IsSuccess: true,
-            SourceId: sourceId,
-            SourceName: "Vendor Manual",
-            SourceType: SourceType.VendorDocumentation,
-            Url: "https://vendor.example.com",
-            DocumentId: Guid.NewGuid(),
-            FileName: "manual.txt",
-            ContentType: "text/plain",
-            FileHash: "abc123hash",
-            ChunkCount: 3,
-            IsDuplicate: false,
-            ErrorCategory: null,
-            ErrorMessage: null,
-            Timestamp: DateTimeOffset.UtcNow);
+        using var prodFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+        });
+        var prodClient = prodFactory.CreateClient();
 
-        var service = new FakeEnrichmentService((_, _, _) => Task.FromResult(expectedDto));
-        var controller = new SourcesController(service);
+        var missingId = Guid.NewGuid();
+        var response = await prodClient.PostAsync($"/api/sources/{missingId}/import", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
-        var actionResult = await controller.ImportFromSource(sourceId);
-
-        var okResult = Assert.IsType<OkObjectResult>(actionResult);
-        var returnedDto = Assert.IsType<ExternalImportResultDto>(okResult.Value);
-        Assert.True(returnedDto.IsSuccess);
-        Assert.Equal(sourceId, returnedDto.SourceId);
-        Assert.Equal("manual.txt", returnedDto.FileName);
+        var details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(details);
+        Assert.Equal(404, details.Status);
+        Assert.Equal("Not Found", details.Title);
+        Assert.Equal("https://tools.ietf.org/html/rfc7231#section-6.5.4", details.Type);
+        Assert.DoesNotContain("at ", details.Detail);
+        Assert.DoesNotContain("Server=", details.Detail);
     }
 }
