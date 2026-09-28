@@ -15,8 +15,7 @@ public class GovernancePublicationAtomicityTests : IAsyncLifetime
 {
     private readonly string _databaseName;
     private readonly string _connectionString;
-    private AppDbContext? _context;
-    private bool _isSqlServerAvailable = true;
+    private AppDbContext _context = null!;
 
     public GovernancePublicationAtomicityTests()
     {
@@ -26,24 +25,17 @@ public class GovernancePublicationAtomicityTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        try
-        {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(_connectionString)
-                .Options;
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer(_connectionString)
+            .Options;
 
-            _context = new AppDbContext(options);
-            await _context.Database.MigrateAsync();
-        }
-        catch (Exception)
-        {
-            _isSqlServerAvailable = false;
-        }
+        _context = new AppDbContext(options);
+        await _context.Database.MigrateAsync();
     }
 
     public async Task DisposeAsync()
     {
-        if (_context != null && _isSqlServerAvailable)
+        if (_context != null)
         {
             try
             {
@@ -60,7 +52,6 @@ public class GovernancePublicationAtomicityTests : IAsyncLifetime
     [Fact]
     public async Task Approve_ShouldAtomically_PublishArticle_AndCreateKnowledgeVersion()
     {
-        if (!_isSqlServerAvailable || _context == null) return;
 
         var articleRepo = new KnowledgeArticleRepository(_context);
         var typeRepo = new KnowledgeTypeRepository(_context);
@@ -130,7 +121,6 @@ public class GovernancePublicationAtomicityTests : IAsyncLifetime
     [Fact]
     public async Task Approve_WhenVersionPersistenceFails_ShouldRollback_ArticlePublication()
     {
-        if (!_isSqlServerAvailable || _context == null) return;
 
         var articleRepo = new KnowledgeArticleRepository(_context);
         var typeRepo = new KnowledgeTypeRepository(_context);

@@ -16,8 +16,10 @@ public sealed class KnowledgeArticleService(
     IDateTimeProvider dateTimeProvider,
     IAuditLogRepository auditLogRepository,
     IKnowledgeVersionRepository versionRepository,
-    IUnitOfWork? unitOfWork = null) : IKnowledgeArticleService
+    IUnitOfWork unitOfWork) : IKnowledgeArticleService
 {
+    private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+
     public async Task<KnowledgeArticleDto> CreateArticleAsync(
         CreateKnowledgeArticleCommand command,
         CancellationToken cancellationToken = default)
@@ -162,12 +164,7 @@ public sealed class KnowledgeArticleService(
         if (command.ArticleId == Guid.Empty) throw new ValidationException("ArticleId is required.");
         if (command.ReviewerId == Guid.Empty) throw new ValidationException("ReviewerId is required.");
 
-        if (unitOfWork is not null)
-        {
-            return await unitOfWork.ExecuteTransactionAsync(ct => ExecuteApproveCoreAsync(command, ct), cancellationToken);
-        }
-
-        return await ExecuteApproveCoreAsync(command, cancellationToken);
+        return await _unitOfWork.ExecuteTransactionAsync(ct => ExecuteApproveCoreAsync(command, ct), cancellationToken);
     }
 
     private async Task<KnowledgeArticleDto> ExecuteApproveCoreAsync(

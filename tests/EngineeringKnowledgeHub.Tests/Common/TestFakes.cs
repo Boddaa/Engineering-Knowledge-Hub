@@ -489,4 +489,26 @@ public class InMemoryDocumentChunkRepository : IDocumentChunkRepository
     }
 }
 
+public class PassThroughUnitOfWork : IUnitOfWork
+{
+    public bool TransactionExecuted { get; set; }
+
+    public async Task ExecuteTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+    {
+        TransactionExecuted = true;
+        await operation(cancellationToken);
+    }
+
+    public async Task<T> ExecuteTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+    {
+        TransactionExecuted = true;
+        return await operation(cancellationToken);
+    }
+
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(0);
+    }
+}
+
 

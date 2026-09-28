@@ -45,7 +45,8 @@ public class GovernanceLifecycleTests
             _techRepo,
             _dateTimeProvider,
             _auditRepo,
-            _versionRepo);
+            _versionRepo,
+            new PassThroughUnitOfWork());
 
         _governanceService = new KnowledgeGovernanceService(
             _versionRepo,

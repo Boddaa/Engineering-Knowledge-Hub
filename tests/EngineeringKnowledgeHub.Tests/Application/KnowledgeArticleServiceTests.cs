@@ -22,6 +22,7 @@ public class KnowledgeArticleServiceTests
 
     private readonly Guid _knowledgeTypeId = Guid.NewGuid();
     private readonly Guid _authorId = Guid.NewGuid();
+    private readonly PassThroughUnitOfWork _unitOfWork = new();
     private readonly Guid _reviewerId = Guid.NewGuid();
     private readonly DateTimeOffset _initialTime = new(2026, 9, 24, 12, 0, 0, TimeSpan.Zero);
 
@@ -36,7 +37,8 @@ public class KnowledgeArticleServiceTests
             _techRepo,
             _dateTimeProvider,
             _auditRepo,
-            _versionRepo);
+            _versionRepo,
+            _unitOfWork);
 
         // Seed default knowledge type
         _typeRepo.AddAsync(new KnowledgeType(_knowledgeTypeId, "Troubleshooting", "Troubleshooting guide")).Wait();
@@ -332,5 +334,39 @@ public class KnowledgeArticleServiceTests
 
         var withoutTech = await _service.RemoveTechnologyAsync(created.Id, techId);
         Assert.DoesNotContain(techId, withoutTech.TechnologyIds);
+    }
+
+    [Fact]
+    public void Constructor_Should_ThrowArgumentNullException_When_UnitOfWork_IsNull()
+    {
+        var ex = Assert.Throws<ArgumentNullException>(() => new KnowledgeArticleService(
+            _articleRepo,
+            _typeRepo,
+            _tagRepo,
+            _productRepo,
+            _techRepo,
+            _dateTimeProvider,
+            _auditRepo,
+            _versionRepo,
+            null!));
+
+        Assert.Equal("unitOfWork", ex.ParamName);
+    }
+
+    [Fact]
+    public async Task ApproveArticleAsync_Should_ExecuteThrough_UnitOfWork_Transaction()
+    {
+        var created = await _service.CreateArticleAsync(new CreateKnowledgeArticleCommand(
+            "Tx Test Article", "Summary", "Content", _knowledgeTypeId, _authorId));
+
+        await _service.SubmitForReviewAsync(created.Id, _authorId);
+
+        _unitOfWork.TransactionExecuted = false;
+
+        var approved = await _service.ApproveArticleAsync(new ApproveKnowledgeArticleCommand(
+            created.Id, _reviewerId, "Approved via Tx"));
+
+        Assert.True(_unitOfWork.TransactionExecuted);
+        Assert.Equal(KnowledgeStatus.Published, approved.Status);
     }
 }

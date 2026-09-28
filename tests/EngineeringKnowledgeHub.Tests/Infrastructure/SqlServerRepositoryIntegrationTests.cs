@@ -14,8 +14,7 @@ public class SqlServerRepositoryIntegrationTests : IAsyncLifetime
 {
     private readonly string _databaseName;
     private readonly string _connectionString;
-    private AppDbContext? _context;
-    private bool _isSqlServerAvailable = true;
+    private AppDbContext _context = null!;
 
     public SqlServerRepositoryIntegrationTests()
     {
@@ -25,24 +24,17 @@ public class SqlServerRepositoryIntegrationTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        try
-        {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(_connectionString)
-                .Options;
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer(_connectionString)
+            .Options;
 
-            _context = new AppDbContext(options);
-            await _context.Database.MigrateAsync();
-        }
-        catch (Exception)
-        {
-            _isSqlServerAvailable = false;
-        }
+        _context = new AppDbContext(options);
+        await _context.Database.MigrateAsync();
     }
 
     public async Task DisposeAsync()
     {
-        if (_context != null && _isSqlServerAvailable)
+        if (_context != null)
         {
             try
             {
@@ -59,7 +51,6 @@ public class SqlServerRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task KnowledgeArticle_Persistence_RoundTrip_Works_Correctly()
     {
-        if (!_isSqlServerAvailable || _context == null) return;
 
         var typeRepo = new KnowledgeTypeRepository(_context);
         var articleRepo = new KnowledgeArticleRepository(_context);
@@ -134,7 +125,6 @@ public class SqlServerRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task KnowledgeVersion_Persistence_RoundTrip_Works_Correctly()
     {
-        if (!_isSqlServerAvailable || _context == null) return;
 
         var typeRepo = new KnowledgeTypeRepository(_context);
         var articleRepo = new KnowledgeArticleRepository(_context);
@@ -214,7 +204,6 @@ public class SqlServerRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task KnowledgeSource_Persistence_RoundTrip_Works_Correctly()
     {
-        if (!_isSqlServerAvailable || _context == null) return;
 
         var sourceRepo = new KnowledgeSourceRepository(_context);
 
@@ -251,7 +240,6 @@ public class SqlServerRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task AuditLog_Persistence_RoundTrip_Works_Correctly()
     {
-        if (!_isSqlServerAvailable || _context == null) return;
 
         var auditRepo = new AuditLogRepository(_context);
 
@@ -291,7 +279,6 @@ public class SqlServerRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task Incident_Persistence_RoundTrip_Works_Correctly()
     {
-        if (!_isSqlServerAvailable || _context == null) return;
 
         var incidentRepo = new IncidentRepository(_context);
 
