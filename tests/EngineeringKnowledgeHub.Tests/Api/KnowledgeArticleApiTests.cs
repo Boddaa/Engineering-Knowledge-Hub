@@ -323,4 +323,163 @@ public class KnowledgeArticleApiTests : IClassFixture<CustomWebApplicationFactor
         Assert.Equal(400, problem.Status);
         Assert.Contains("Article ID cannot be empty", problem.Detail);
     }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public async Task CreateArticle_WithWhitespaceTitle_ShouldReturn400BadRequest(string whitespace)
+    {
+        var invalidRequest = new
+        {
+            Title = whitespace,
+            Summary = "Valid Summary",
+            Content = "Valid Content",
+            KnowledgeTypeId = _factory.DefaultKnowledgeTypeId,
+            AuthorId = Guid.NewGuid()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/knowledge/articles", invalidRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public async Task CreateArticle_WithWhitespaceSummary_ShouldReturn400BadRequest(string whitespace)
+    {
+        var invalidRequest = new
+        {
+            Title = "Valid Title",
+            Summary = whitespace,
+            Content = "Valid Content",
+            KnowledgeTypeId = _factory.DefaultKnowledgeTypeId,
+            AuthorId = Guid.NewGuid()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/knowledge/articles", invalidRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public async Task CreateArticle_WithWhitespaceContent_ShouldReturn400BadRequest(string whitespace)
+    {
+        var invalidRequest = new
+        {
+            Title = "Valid Title",
+            Summary = "Valid Summary",
+            Content = whitespace,
+            KnowledgeTypeId = _factory.DefaultKnowledgeTypeId,
+            AuthorId = Guid.NewGuid()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/knowledge/articles", invalidRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public async Task UpdateArticle_WithWhitespaceTitle_ShouldReturn400BadRequest(string whitespace)
+    {
+        var createResponse = await _client.PostAsJsonAsync("/api/knowledge/articles", new CreateArticleRequest(
+            Title: "Initial Title",
+            Summary: "Initial Summary",
+            Content: "Initial Content",
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId,
+            AuthorId: Guid.NewGuid()));
+        var article = await createResponse.Content.ReadFromJsonAsync<KnowledgeArticleDto>();
+        Assert.NotNull(article);
+
+        var updateRequest = new
+        {
+            Title = whitespace,
+            Summary = "Updated Summary",
+            Content = "Updated Content"
+        };
+
+        var updateResponse = await _client.PutAsJsonAsync($"/api/knowledge/articles/{article.Id}", updateRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+
+        var problem = await updateResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public async Task UpdateArticle_WithWhitespaceSummary_ShouldReturn400BadRequest(string whitespace)
+    {
+        var createResponse = await _client.PostAsJsonAsync("/api/knowledge/articles", new CreateArticleRequest(
+            Title: "Initial Title",
+            Summary: "Initial Summary",
+            Content: "Initial Content",
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId,
+            AuthorId: Guid.NewGuid()));
+        var article = await createResponse.Content.ReadFromJsonAsync<KnowledgeArticleDto>();
+        Assert.NotNull(article);
+
+        var updateRequest = new
+        {
+            Title = "Updated Title",
+            Summary = whitespace,
+            Content = "Updated Content"
+        };
+
+        var updateResponse = await _client.PutAsJsonAsync($"/api/knowledge/articles/{article.Id}", updateRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+
+        var problem = await updateResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public async Task UpdateArticle_WithWhitespaceContent_ShouldReturn400BadRequest(string whitespace)
+    {
+        var createResponse = await _client.PostAsJsonAsync("/api/knowledge/articles", new CreateArticleRequest(
+            Title: "Initial Title",
+            Summary: "Initial Summary",
+            Content: "Initial Content",
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId,
+            AuthorId: Guid.NewGuid()));
+        var article = await createResponse.Content.ReadFromJsonAsync<KnowledgeArticleDto>();
+        Assert.NotNull(article);
+
+        var updateRequest = new
+        {
+            Title = "Updated Title",
+            Summary = "Updated Summary",
+            Content = whitespace
+        };
+
+        var updateResponse = await _client.PutAsJsonAsync($"/api/knowledge/articles/{article.Id}", updateRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+
+        var problem = await updateResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
 }

@@ -7,16 +7,34 @@ using EngineeringKnowledgeHub.Application.Articles;
 /// HTTP request contract for creating a new knowledge article.
 /// </summary>
 public sealed record CreateArticleRequest(
-    [Required(ErrorMessage = "Article title is required.")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Article title is required.")]
     string Title,
-    [Required(ErrorMessage = "Article summary is required.")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Article summary is required.")]
     string Summary,
-    [Required(ErrorMessage = "Article content is required.")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Article content is required.")]
     string Content,
     Guid KnowledgeTypeId,
     Guid AuthorId,
-    string? Slug = null)
+    string? Slug = null) : IValidatableObject
 {
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (string.IsNullOrWhiteSpace(Title))
+        {
+            yield return new ValidationResult("Article title is required.", [nameof(Title)]);
+        }
+
+        if (string.IsNullOrWhiteSpace(Summary))
+        {
+            yield return new ValidationResult("Article summary is required.", [nameof(Summary)]);
+        }
+
+        if (string.IsNullOrWhiteSpace(Content))
+        {
+            yield return new ValidationResult("Article content is required.", [nameof(Content)]);
+        }
+    }
+
     public CreateKnowledgeArticleCommand ToCommand() =>
         new(Title, Summary, Content, KnowledgeTypeId, AuthorId, Slug);
 }
@@ -25,13 +43,32 @@ public sealed record CreateArticleRequest(
 /// HTTP request contract for updating an existing knowledge article.
 /// </summary>
 public sealed record UpdateArticleRequest(
-    [Required(ErrorMessage = "Article title is required.")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Article title is required.")]
     string Title,
-    [Required(ErrorMessage = "Article summary is required.")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Article summary is required.")]
     string Summary,
-    [Required(ErrorMessage = "Article content is required.")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Article content is required.")]
     string Content,
-    string? Slug = null);
+    string? Slug = null) : IValidatableObject
+{
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (string.IsNullOrWhiteSpace(Title))
+        {
+            yield return new ValidationResult("Article title is required.", [nameof(Title)]);
+        }
+
+        if (string.IsNullOrWhiteSpace(Summary))
+        {
+            yield return new ValidationResult("Article summary is required.", [nameof(Summary)]);
+        }
+
+        if (string.IsNullOrWhiteSpace(Content))
+        {
+            yield return new ValidationResult("Article content is required.", [nameof(Content)]);
+        }
+    }
+}
 
 /// <summary>
 /// HTTP request contract for submitting an article for peer review.
