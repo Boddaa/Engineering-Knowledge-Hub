@@ -26,64 +26,14 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
         [FromBody] CreateArticleRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (request is null)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Request body cannot be null."
-            });
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article title is required."
-            });
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Summary))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article summary is required."
-            });
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Content))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article content is required."
-            });
-        }
-
         if (request.KnowledgeTypeId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "KnowledgeTypeId cannot be empty."
-            });
+            return EmptyGuidError("KnowledgeTypeId");
         }
 
         if (request.AuthorId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "AuthorId cannot be empty."
-            });
+            return EmptyGuidError("AuthorId");
         }
 
         var result = await _articleService.CreateArticleAsync(request.ToCommand(), cancellationToken);
@@ -103,12 +53,7 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         var article = await _articleService.GetArticleByIdAsync(id, cancellationToken);
@@ -130,52 +75,7 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
-        }
-
-        if (request is null)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Request body cannot be null."
-            });
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article title is required."
-            });
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Summary))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article summary is required."
-            });
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Content))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article content is required."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         var command = new UpdateKnowledgeArticleCommand(id, request.Title, request.Summary, request.Content, request.Slug);
@@ -198,12 +98,7 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         var result = request?.SubmitterId.HasValue == true && request.SubmitterId.Value != Guid.Empty
@@ -228,32 +123,12 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
-        }
-
-        if (request is null)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Request body cannot be null."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (request.ReviewerId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Reviewer ID cannot be empty."
-            });
+            return EmptyGuidError("Reviewer ID");
         }
 
         var command = new ApproveKnowledgeArticleCommand(id, request.ReviewerId, request.ChangeSummary);
@@ -276,32 +151,12 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
-        }
-
-        if (request is null)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Request body cannot be null."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (request.ReviewerId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Reviewer ID cannot be empty."
-            });
+            return EmptyGuidError("Reviewer ID");
         }
 
         var command = new RejectKnowledgeArticleCommand(id, request.ReviewerId);
@@ -324,12 +179,7 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         var result = request?.ActorId.HasValue == true && request.ActorId.Value != Guid.Empty
@@ -354,12 +204,7 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         var result = request?.ActorId.HasValue == true && request.ActorId.Value != Guid.Empty
@@ -383,22 +228,12 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (tagId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Tag ID cannot be empty."
-            });
+            return EmptyGuidError("Tag ID");
         }
 
         var result = await _articleService.AddTagAsync(id, tagId, cancellationToken);
@@ -419,22 +254,12 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (tagId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Tag ID cannot be empty."
-            });
+            return EmptyGuidError("Tag ID");
         }
 
         var result = await _articleService.RemoveTagAsync(id, tagId, cancellationToken);
@@ -455,22 +280,12 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (productId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Product ID cannot be empty."
-            });
+            return EmptyGuidError("Product ID");
         }
 
         var result = await _articleService.AddProductAsync(id, productId, cancellationToken);
@@ -491,22 +306,12 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (productId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Product ID cannot be empty."
-            });
+            return EmptyGuidError("Product ID");
         }
 
         var result = await _articleService.RemoveProductAsync(id, productId, cancellationToken);
@@ -527,22 +332,12 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (technologyId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Technology ID cannot be empty."
-            });
+            return EmptyGuidError("Technology ID");
         }
 
         var result = await _articleService.AddTechnologyAsync(id, technologyId, cancellationToken);
@@ -563,25 +358,23 @@ public sealed class KnowledgeArticlesController(IKnowledgeArticleService article
     {
         if (id == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Article ID cannot be empty."
-            });
+            return EmptyGuidError("Article ID");
         }
 
         if (technologyId == Guid.Empty)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = "Technology ID cannot be empty."
-            });
+            return EmptyGuidError("Technology ID");
         }
 
         var result = await _articleService.RemoveTechnologyAsync(id, technologyId, cancellationToken);
         return Ok(result);
     }
+
+    private static BadRequestObjectResult EmptyGuidError(string fieldName) =>
+        new(new ProblemDetails
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Validation Error",
+            Detail = $"{fieldName} cannot be empty."
+        });
 }

@@ -272,4 +272,55 @@ public class KnowledgeArticleApiTests : IClassFixture<CustomWebApplicationFactor
         Assert.NotNull(archivedArticle);
         Assert.Equal(KnowledgeStatus.Archived, archivedArticle.Status);
     }
+
+    [Fact]
+    public async Task CreateArticle_WithMissingTitle_ShouldReturn400BadRequest()
+    {
+        var invalidRequest = new
+        {
+            Title = "",
+            Summary = "Summary",
+            Content = "Content",
+            KnowledgeTypeId = _factory.DefaultKnowledgeTypeId,
+            AuthorId = Guid.NewGuid()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/knowledge/articles", invalidRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Fact]
+    public async Task CreateArticle_WithEmptyKnowledgeTypeId_ShouldReturn400BadRequest()
+    {
+        var invalidRequest = new CreateArticleRequest(
+            Title: "Valid Title",
+            Summary: "Valid Summary",
+            Content: "Valid Content",
+            KnowledgeTypeId: Guid.Empty,
+            AuthorId: Guid.NewGuid());
+
+        var response = await _client.PostAsJsonAsync("/api/knowledge/articles", invalidRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+        Assert.Contains("KnowledgeTypeId cannot be empty", problem.Detail);
+    }
+
+    [Fact]
+    public async Task GetArticle_WithEmptyGuid_ShouldReturn400BadRequest()
+    {
+        var response = await _client.GetAsync($"/api/knowledge/articles/{Guid.Empty}");
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+        Assert.Contains("Article ID cannot be empty", problem.Detail);
+    }
 }

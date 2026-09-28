@@ -69,9 +69,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         {
             await context.Database.EnsureDeletedAsync();
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort database cleanup
+            // Best-effort database cleanup; log warning rather than silently swallowing
+            Console.WriteLine($"[Test Cleanup Warning] Failed to delete test database '{_databaseName}': {ex.Message}");
         }
 
         await base.DisposeAsync();

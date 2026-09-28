@@ -1,13 +1,17 @@
 namespace EngineeringKnowledgeHub.Api.Models;
 
+using System.ComponentModel.DataAnnotations;
 using EngineeringKnowledgeHub.Application.Articles;
 
 /// <summary>
 /// HTTP request contract for creating a new knowledge article.
 /// </summary>
 public sealed record CreateArticleRequest(
+    [Required(ErrorMessage = "Article title is required.")]
     string Title,
+    [Required(ErrorMessage = "Article summary is required.")]
     string Summary,
+    [Required(ErrorMessage = "Article content is required.")]
     string Content,
     Guid KnowledgeTypeId,
     Guid AuthorId,
@@ -21,8 +25,11 @@ public sealed record CreateArticleRequest(
 /// HTTP request contract for updating an existing knowledge article.
 /// </summary>
 public sealed record UpdateArticleRequest(
+    [Required(ErrorMessage = "Article title is required.")]
     string Title,
+    [Required(ErrorMessage = "Article summary is required.")]
     string Summary,
+    [Required(ErrorMessage = "Article content is required.")]
     string Content,
     string? Slug = null);
 
