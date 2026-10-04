@@ -15,7 +15,20 @@ class ApiClient {
 
   private buildUrl(path: string, params?: RequestOptions['params']): string {
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    const url = new URL(`${this.baseUrl}${cleanPath}`, window.location.origin);
+
+    // Normalize path to avoid /api/api when baseUrl already contains /api
+    let fullPath: string;
+    if (this.baseUrl.endsWith('/api') && (cleanPath.startsWith('/api/') || cleanPath === '/api')) {
+      const strippedPath = cleanPath.slice(4);
+      fullPath = `${this.baseUrl}${strippedPath}`;
+    } else {
+      fullPath = `${this.baseUrl}${cleanPath}`;
+    }
+
+    const isAbsolute = /^https?:\/\//i.test(fullPath);
+    const url = isAbsolute
+      ? new URL(fullPath)
+      : new URL(fullPath, window.location.origin);
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -25,7 +38,7 @@ class ApiClient {
       });
     }
 
-    return url.pathname + url.search;
+    return isAbsolute ? url.toString() : url.pathname + url.search;
   }
 
   private async request<T>(

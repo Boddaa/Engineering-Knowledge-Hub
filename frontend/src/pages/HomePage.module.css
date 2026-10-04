@@ -27,7 +27,7 @@
   left: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(to bottom, var(--color-brand-cyan), var(--color-brand-violet));
+  background: linear-gradient(to bottom, var(--color-accent-primary), var(--color-accent-secondary));
 }
 
 .welcomeLeft {
@@ -138,7 +138,7 @@
 }
 
 .knowledgeItem:hover {
-  border-color: var(--color-brand-cyan);
+  border-color: var(--color-accent-primary);
   background-color: var(--color-surface-overlay);
 }
 
@@ -203,7 +203,7 @@
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-brand-cyan), var(--color-status-success));
+  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-status-success));
   border-radius: var(--radius-full);
 }
 

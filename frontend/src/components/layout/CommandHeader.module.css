@@ -46,7 +46,7 @@
   border-radius: var(--radius-sm);
   background: linear-gradient(135deg, rgba(92, 225, 230, 0.2), rgba(139, 124, 255, 0.2));
   border: 1px solid rgba(92, 225, 230, 0.4);
-  color: var(--color-brand-cyan);
+  color: var(--color-accent-primary);
 }
 
 .brandText {
@@ -150,7 +150,7 @@
 .userRole {
   font-family: var(--font-family-mono);
   font-size: 11px;
-  color: var(--color-brand-cyan);
+  color: var(--color-accent-primary);
 }
 
 @media (max-width: 1024px) {

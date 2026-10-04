@@ -47,7 +47,7 @@
   padding: 1px 5px;
   border-radius: var(--radius-sm);
   background-color: rgba(139, 124, 255, 0.15);
-  color: var(--color-brand-violet);
+  color: var(--color-accent-secondary);
   border: 1px solid rgba(139, 124, 255, 0.3);
 }
 
@@ -128,7 +128,7 @@
   width: 6px;
   height: 6px;
   border-radius: var(--radius-full);
-  background-color: var(--color-brand-cyan);
+  background-color: var(--color-accent-primary);
   margin-top: 5px;
   flex-shrink: 0;
 }

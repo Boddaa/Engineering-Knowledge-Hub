@@ -50,14 +50,14 @@ All styling strictly adheres to `DESIGN_SYSTEM.md` and `DESIGN_TOKENS.md`:
   * `--color-text-primary`: `#F5F7FA`
   * `--color-text-secondary`: `#B8C2D1`
   * `--color-text-muted`: `#778399`
-  * `--color-brand-cyan`: `#5CE1E6`
+  * `--color-text-accent`: `#5CE1E6`
   * Fonts: `Geist` (Sans-serif) and `JetBrains Mono` (Monospace)
-* **Semantic Colors**:
-  * Cyan: `#5CE1E6`
-  * Violet: `#8B7CFF`
-  * Success: `#45E0A8`
-  * Warning: `#FFB86C`
-  * Error: `#FF5555`
+* **Semantic & Accent Colors**:
+  * `--color-accent-primary`: `#5CE1E6` (Electric Cyan)
+  * `--color-accent-secondary`: `#8B7CFF` (Electric Violet)
+  * `--color-status-success`: `#45E0A8`
+  * `--color-status-warning`: `#FFB86C`
+  * `--color-status-error`: `#FF5555`
 
 ## Development Setup
 

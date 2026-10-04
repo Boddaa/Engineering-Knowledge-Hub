@@ -32,13 +32,13 @@
 .variant-cyan {
   background-color: rgba(92, 225, 230, 0.1);
   border: 1px solid rgba(92, 225, 230, 0.3);
-  color: var(--color-brand-cyan);
+  color: var(--color-accent-primary);
 }
 
 .variant-violet {
   background-color: rgba(139, 124, 255, 0.1);
   border: 1px solid rgba(139, 124, 255, 0.3);
-  color: var(--color-brand-violet);
+  color: var(--color-accent-secondary);
 }
 
 .variant-success {

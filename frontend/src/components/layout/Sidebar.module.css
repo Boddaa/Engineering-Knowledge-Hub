@@ -67,8 +67,8 @@
 
 .navItem.isActive {
   background-color: var(--color-surface-elevated);
-  color: var(--color-brand-cyan);
-  border-left-color: var(--color-brand-cyan);
+  color: var(--color-accent-primary);
+  border-left-color: var(--color-accent-primary);
   font-weight: 600;
 }
 
@@ -113,8 +113,8 @@
 }
 
 .isActive .itemDot {
-  background-color: var(--color-brand-cyan);
-  box-shadow: 0 0 6px var(--color-brand-cyan);
+  background-color: var(--color-accent-primary);
+  box-shadow: 0 0 6px var(--color-accent-primary);
 }
 
 .subItem {

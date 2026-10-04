@@ -37,15 +37,14 @@ export const HomePage: React.FC = () => {
         <section className={styles.welcomeCard} aria-label="Welcome Overview">
           <div className={styles.welcomeLeft}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Badge variant="violet">System Baseline Ready</Badge>
-              <span className="text-caption">Branch: main</span>
+              <Badge variant="violet">Phase F0 Foundation</Badge>
+              <span className="text-caption">Presentation Shell</span>
             </div>
             <h2 className={styles.welcomeTitle}>
               Welcome back, {mockCurrentUser.name}
             </h2>
             <p className={styles.welcomeSubtitle}>
-              Backend ASP.NET Core services are active with 854 passing tests.
-              The application shell connects the presentation layer to domain knowledge pipelines.
+              Phase F0 application shell and design system foundation. Operational metrics and activity displays below are simulated presentation mock data pending Phase F1 API integration.
             </p>
           </div>
           <Button
@@ -57,48 +56,58 @@ export const HomePage: React.FC = () => {
           </Button>
         </section>
 
-        {/* Metrics Overview Grid */}
-        <section className={styles.metricsGrid} aria-label="Knowledge Hub Overview Metrics">
-          <div className={styles.metricCard}>
-            <div className={styles.metricHeader}>
-              <span className={styles.metricLabel}>Knowledge Nodes</span>
-              <BookOpen size={16} />
+        {/* Metrics Overview Grid with Clear F0 Mock Presentation Tag */}
+        <section aria-label="Knowledge Hub Overview Metrics">
+          <div className={styles.sectionHeader} style={{ marginBottom: 'var(--space-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className={styles.sectionTitle}>Platform Overview</h2>
+              <Badge variant="outline">F0 Mock Data</Badge>
             </div>
-            <div className={styles.metricValue}>142</div>
-            <span className={styles.metricMeta}>+12 added this week</span>
+            <span className="text-caption">Simulated metrics (F0 presentation)</span>
           </div>
 
-          <div className={styles.metricCard}>
-            <div className={styles.metricHeader}>
-              <span className={styles.metricLabel}>Verified Ratio</span>
-              <ShieldCheck size={16} />
+          <div className={styles.metricsGrid}>
+            <div className={styles.metricCard}>
+              <div className={styles.metricHeader}>
+                <span className={styles.metricLabel}>Knowledge Nodes</span>
+                <BookOpen size={16} />
+              </div>
+              <div className={styles.metricValue}>142</div>
+              <span className={styles.metricMeta}>+12 added (simulated)</span>
             </div>
-            <div className={styles.metricValue} style={{ color: 'var(--color-status-success)' }}>
-              94.2%
-            </div>
-            <span className={styles.metricMeta}>Passing governance rules</span>
-          </div>
 
-          <div className={styles.metricCard}>
-            <div className={styles.metricHeader}>
-              <span className={styles.metricLabel}>Active Incidents</span>
-              <AlertTriangle size={16} />
+            <div className={styles.metricCard}>
+              <div className={styles.metricHeader}>
+                <span className={styles.metricLabel}>Verified Ratio</span>
+                <ShieldCheck size={16} />
+              </div>
+              <div className={styles.metricValue} style={{ color: 'var(--color-status-success)' }}>
+                94.2%
+              </div>
+              <span className={styles.metricMeta}>Simulated governance rule</span>
             </div>
-            <div className={styles.metricValue} style={{ color: 'var(--color-status-warning)' }}>
-              3
-            </div>
-            <span className={styles.metricMeta}>Linked to runbooks</span>
-          </div>
 
-          <div className={styles.metricCard}>
-            <div className={styles.metricHeader}>
-              <span className={styles.metricLabel}>Tech Taxonomy</span>
-              <Layers size={16} />
+            <div className={styles.metricCard}>
+              <div className={styles.metricHeader}>
+                <span className={styles.metricLabel}>Active Incidents</span>
+                <AlertTriangle size={16} />
+              </div>
+              <div className={styles.metricValue} style={{ color: 'var(--color-status-warning)' }}>
+                3
+              </div>
+              <span className={styles.metricMeta}>Simulated incident queue</span>
             </div>
-            <div className={styles.metricValue} style={{ color: 'var(--color-brand-violet)' }}>
-              28
+
+            <div className={styles.metricCard}>
+              <div className={styles.metricHeader}>
+                <span className={styles.metricLabel}>Tech Taxonomy</span>
+                <Layers size={16} />
+              </div>
+              <div className={styles.metricValue} style={{ color: 'var(--color-accent-secondary)' }}>
+                28
+              </div>
+              <span className={styles.metricMeta}>Products & frameworks (mock)</span>
             </div>
-            <span className={styles.metricMeta}>Products & frameworks</span>
           </div>
         </section>
 
@@ -154,7 +163,7 @@ export const HomePage: React.FC = () => {
           <section aria-label="Knowledge System Health">
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>System Health & Integrity</h2>
-              <Badge variant="cyan">Operational</Badge>
+              <Badge variant="outline">F0 Presentation Mock</Badge>
             </div>
             <div className={styles.healthList}>
               <div className={styles.healthCard}>
@@ -162,7 +171,7 @@ export const HomePage: React.FC = () => {
                   <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
                     Snapshot Governance
                   </span>
-                  <span className="text-code" style={{ color: 'var(--color-brand-cyan)' }}>
+                  <span className="text-code" style={{ color: 'var(--color-accent-primary)' }}>
                     100%
                   </span>
                 </div>
@@ -170,7 +179,7 @@ export const HomePage: React.FC = () => {
                   <div className={styles.progressFill} style={{ width: '100%' }} />
                 </div>
                 <span className="text-caption">
-                  Mandatory KnowledgeVersion snapshots on all transitions
+                  Simulated readiness target (mandatory snapshots on all transitions)
                 </span>
               </div>
 
@@ -187,7 +196,7 @@ export const HomePage: React.FC = () => {
                   <div className={styles.progressFill} style={{ width: '92%' }} />
                 </div>
                 <span className="text-caption">
-                  Semantic chunking and embedding stores synced
+                  Simulated status (semantic chunking and embedding stores)
                 </span>
               </div>
 
@@ -196,7 +205,7 @@ export const HomePage: React.FC = () => {
                   <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
                     REST API Contract Status
                   </span>
-                  <span className="text-code" style={{ color: 'var(--color-brand-violet)' }}>
+                  <span className="text-code" style={{ color: 'var(--color-accent-secondary)' }}>
                     13 Controllers
                   </span>
                 </div>
