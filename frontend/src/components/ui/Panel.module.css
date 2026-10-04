@@ -1,0 +1,54 @@
+.panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-default);
+  transition: all var(--duration-normal) var(--ease-default);
+}
+
+.elevation-0 {
+  background-color: var(--color-surface-base);
+  box-shadow: none;
+}
+
+.elevation-1 {
+  background-color: var(--color-surface-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.elevation-2 {
+  background-color: var(--color-surface-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.elevation-3 {
+  background-color: var(--color-surface-overlay);
+  box-shadow: var(--shadow-lg);
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.interactive:hover {
+  border-color: var(--color-border-hover);
+  transform: translateY(-1px);
+}
+
+.padding-none {
+  padding: 0;
+}
+
+.padding-sm {
+  padding: var(--space-sm);
+}
+
+.padding-md {
+  padding: var(--space-md);
+}
+
+.padding-lg {
+  padding: var(--space-lg);
+}
+
+.padding-xl {
+  padding: var(--space-xl);
+}

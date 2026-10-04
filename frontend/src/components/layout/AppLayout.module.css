@@ -1,0 +1,119 @@
+.layoutRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--color-surface-base);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+.bodyContainer {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - var(--height-header));
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.workspaceOutlet {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--color-surface-base);
+  background-image: radial-gradient(
+    circle at top right,
+    rgba(92, 225, 230, 0.03) 0%,
+    transparent 40%
+  );
+}
+
+/* Modal for Ctrl+K command palette placeholder */
+.paletteBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(8, 11, 18, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: var(--z-index-modal);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  animation: fadeIn 0.15s ease;
+}
+
+.paletteDialog {
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-focus);
+  box-shadow: var(--shadow-xl), var(--shadow-glow);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.paletteHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border-default);
+  color: var(--color-text-muted);
+}
+
+.paletteInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-family-sans);
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+
+.paletteBody {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.paletteNotice {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.paletteFooter {
+  padding: var(--space-sm) var(--space-lg);
+  background-color: var(--color-surface-base);
+  border-top: 1px solid var(--color-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-mono);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

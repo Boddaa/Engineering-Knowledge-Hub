@@ -1,0 +1,97 @@
+:root {
+  /* ==========================================================================
+     Surface Tokens
+     ========================================================================== */
+  --color-surface-base: #080B12;      /* App Background */
+  --color-surface-elevated: #0D111A;  /* Main Content Canvas */
+  --color-surface-floating: #141A24;  /* Panels, Dropdowns, Cards */
+  --color-surface-overlay: #192231;   /* Hover states, Modals */
+  --color-surface-input: rgba(8, 11, 18, 0.8);
+
+  /* ==========================================================================
+     Border Tokens
+     ========================================================================== */
+  --color-border-subtle: #202B3B;     /* Dividers */
+  --color-border-default: #273449;    /* Cards, Panels */
+  --color-border-focus: #5CE1E6;      /* Active Inputs, Accent */
+
+  /* ==========================================================================
+     Typography Colors
+     ========================================================================== */
+  --color-text-primary: #F5F7FA;      /* Headings, Body */
+  --color-text-secondary: #B8C2D1;    /* Subtitles, Metadata */
+  --color-text-muted: #778399;        /* Placeholders, Inactive */
+  --color-text-accent: #5CE1E6;       /* Links, Active states */
+
+  /* ==========================================================================
+     Semantic & Accent Colors
+     ========================================================================== */
+  --color-accent-primary: #5CE1E6;    /* Electric Cyan */
+  --color-accent-secondary: #8B7CFF;  /* Electric Violet (Graph nodes / AI) */
+  --color-status-success: #45E0A8;    /* Verified / Success */
+  --color-status-warning: #FFB86C;    /* Unverified / Warning */
+  --color-status-error: #FF5555;      /* Critical / Error */
+  --color-status-info: #5CE1E6;       /* Info / System */
+
+  /* ==========================================================================
+     Typography Families
+     ========================================================================== */
+  --font-family-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, Consolas, monospace;
+
+  /* ==========================================================================
+     Spacing Tokens (Base 4px scale)
+     ========================================================================== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* ==========================================================================
+     Component Dimension Tokens
+     ========================================================================== */
+  --height-input-sm: 32px;
+  --height-input-md: 40px;
+  --height-input-lg: 48px;
+  --height-button-sm: 32px;
+  --height-button-md: 40px;
+  --height-button-lg: 48px;
+  --height-header: 64px;
+  --height-table-row: 36px;
+
+  /* ==========================================================================
+     Layout Tokens
+     ========================================================================== */
+  --width-sidebar: 260px;
+  --width-panel-right: 320px;
+  --indent-tree: 16px;
+  --max-width-content: 900px;
+
+  /* ==========================================================================
+     Radii Tokens
+     ========================================================================== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ==========================================================================
+     Shadow & Depth Tokens
+     ========================================================================== */
+  --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px #273449;
+  --shadow-glow: 0 0 12px rgba(92, 225, 230, 0.25);
+  --shadow-card-inner: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* ==========================================================================
+     Motion Tokens
+     ========================================================================== */
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-emphasis: 240ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}

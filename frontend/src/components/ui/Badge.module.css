@@ -1,0 +1,73 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.size-sm {
+  padding: 1px var(--space-xs);
+  font-size: 10px;
+}
+
+.size-md {
+  padding: 2px var(--space-sm);
+  font-size: 11px;
+}
+
+.variant-default {
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+}
+
+.variant-cyan {
+  background-color: rgba(92, 225, 230, 0.1);
+  border: 1px solid rgba(92, 225, 230, 0.3);
+  color: var(--color-brand-cyan);
+}
+
+.variant-violet {
+  background-color: rgba(139, 124, 255, 0.1);
+  border: 1px solid rgba(139, 124, 255, 0.3);
+  color: var(--color-brand-violet);
+}
+
+.variant-success {
+  background-color: rgba(69, 224, 168, 0.1);
+  border: 1px solid rgba(69, 224, 168, 0.3);
+  color: var(--color-status-success);
+}
+
+.variant-warning {
+  background-color: rgba(255, 184, 108, 0.1);
+  border: 1px solid rgba(255, 184, 108, 0.3);
+  color: var(--color-status-warning);
+}
+
+.variant-error {
+  background-color: rgba(255, 85, 85, 0.1);
+  border: 1px solid rgba(255, 85, 85, 0.3);
+  color: var(--color-status-error);
+}
+
+.variant-outline {
+  background-color: transparent;
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}

@@ -1,0 +1,217 @@
+.pageContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.welcomeCard {
+  background: linear-gradient(
+    135deg,
+    rgba(20, 26, 36, 0.8) 0%,
+    rgba(13, 17, 26, 0.95) 100%
+  );
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcomeCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--color-brand-cyan), var(--color-brand-violet));
+}
+
+.welcomeLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-width: 650px;
+}
+
+.welcomeTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.welcomeSubtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.metricCard {
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.metricCard:hover {
+  border-color: var(--color-border-hover);
+  transform: translateY(-2px);
+}
+
+.metricHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+}
+
+.metricLabel {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metricValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-mono);
+  line-height: 1.2;
+}
+
+.metricMeta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.dashboardLayout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-xl);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.knowledgeList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.knowledgeItem {
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.knowledgeItem:hover {
+  border-color: var(--color-brand-cyan);
+  background-color: var(--color-surface-overlay);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.itemTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.itemSummary {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.itemFooter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-xs);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.healthList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.healthCard {
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.healthRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-surface-primary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-brand-cyan), var(--color-status-success));
+  border-radius: var(--radius-full);
+}
+
+@media (max-width: 1200px) {
+  .dashboardLayout {
+    grid-template-columns: 1fr;
+  }
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

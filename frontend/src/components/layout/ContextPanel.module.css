@@ -1,0 +1,162 @@
+.contextPanel {
+  width: var(--width-context-panel);
+  background-color: var(--color-surface-base);
+  border-left: 1px solid var(--color-border-default);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--height-header));
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width var(--duration-normal) var(--ease-default),
+              transform var(--duration-normal) var(--ease-default);
+}
+
+.contextPanel.isClosed {
+  width: 0;
+  border-left: none;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border-default);
+  background-color: var(--color-surface-primary);
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.panelTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.mockTag {
+  font-family: var(--font-family-mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(139, 124, 255, 0.15);
+  color: var(--color-brand-violet);
+  border: 1px solid rgba(139, 124, 255, 0.3);
+}
+
+.section {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+
+.quickActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xs);
+}
+
+.connectionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.connectionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-sm);
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.connectionItem:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
+}
+
+.connectionTarget {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.connectionType {
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  position: relative;
+}
+
+.activityItem {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 12px;
+}
+
+.activityDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-cyan);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.activityContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activityDesc {
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.activityDesc strong {
+  color: var(--color-text-primary);
+}
+
+.activityTime {
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.emptyNote {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: var(--space-xs) 0;
+}

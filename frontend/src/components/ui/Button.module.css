@@ -1,0 +1,97 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-family: var(--font-family-sans);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
+}
+
+/* Sizes */
+.size-sm {
+  height: var(--height-button-sm);
+  padding: 0 var(--space-sm);
+  font-size: 13px;
+}
+
+.size-md {
+  height: var(--height-button-md);
+  padding: 0 var(--space-md);
+  font-size: 14px;
+}
+
+.size-lg {
+  height: var(--height-button-lg);
+  padding: 0 var(--space-lg);
+  font-size: 16px;
+}
+
+/* Variants */
+.variant-ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+}
+
+.variant-ghost:hover:not(:disabled) {
+  background-color: var(--color-surface-floating);
+  color: var(--color-text-primary);
+}
+
+.variant-subtle {
+  background-color: var(--color-surface-floating);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-card-inner);
+}
+
+.variant-subtle:hover:not(:disabled) {
+  background-color: var(--color-surface-overlay);
+  border-color: var(--color-border-focus);
+  transform: translateY(-1px);
+}
+
+.variant-primary {
+  background-color: var(--color-accent-primary);
+  color: #080B12;
+  font-weight: 600;
+  box-shadow: var(--shadow-glow);
+}
+
+.variant-primary:hover:not(:disabled) {
+  background-color: #7ef2f6;
+  transform: translateY(-1px);
+}
+
+.variant-danger {
+  background-color: rgba(255, 85, 85, 0.15);
+  border-color: rgba(255, 85, 85, 0.4);
+  color: var(--color-status-error);
+}
+
+.variant-danger:hover:not(:disabled) {
+  background-color: rgba(255, 85, 85, 0.25);
+  border-color: var(--color-status-error);
+}
+
+/* States */
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(100%);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.fullWidth {
+  width: 100%;
+}
