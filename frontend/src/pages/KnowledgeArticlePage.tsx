@@ -39,7 +39,7 @@ export const KnowledgeArticlePage: React.FC = () => {
         <div className={styles.skeletonDetail} aria-busy="true" aria-label="Loading knowledge article details">
           <Skeleton variant="text" width={140} height={32} />
           <Skeleton variant="text" width="75%" height={36} />
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className={styles.skeletonBadges}>
             <Skeleton variant="rectangular" width={90} height={24} />
             <Skeleton variant="rectangular" width={90} height={24} />
           </div>
@@ -104,7 +104,7 @@ export const KnowledgeArticlePage: React.FC = () => {
             {normalizedVerification}
           </Badge>
           {article.slug && (
-            <span className="text-code" style={{ fontSize: '11px' }}>
+            <span className={styles.slugBadge}>
               /{article.slug}
             </span>
           )}
@@ -128,7 +128,7 @@ export const KnowledgeArticlePage: React.FC = () => {
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Created</span>
             <span className={styles.metaValue}>
-              <Calendar size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+              <Calendar size={13} className={styles.metaIcon} />
               {formatDate(article.createdAt)}
             </span>
           </div>
@@ -150,7 +150,7 @@ export const KnowledgeArticlePage: React.FC = () => {
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Author</span>
             <span className={styles.metaValue} title={article.authorId}>
-              <User size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+              <User size={13} className={styles.metaIcon} />
               <span className="text-code">{article.authorId.substring(0, 8)}...</span>
             </span>
           </div>
@@ -159,7 +159,7 @@ export const KnowledgeArticlePage: React.FC = () => {
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Reviewer</span>
               <span className={styles.metaValue} title={article.reviewerId}>
-                <CheckCircle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                <CheckCircle size={13} className={styles.metaIcon} />
                 <span className="text-code">{article.reviewerId.substring(0, 8)}...</span>
               </span>
             </div>
@@ -169,10 +169,10 @@ export const KnowledgeArticlePage: React.FC = () => {
         {/* Summary Box */}
         {article.summary && (
           <section className={styles.summaryBox} aria-label="Executive summary">
-            <strong style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--color-accent-primary)' }}>
+            <strong className={styles.summaryTitle}>
               Executive Summary
             </strong>
-            <p style={{ margin: 0 }}>{article.summary}</p>
+            <p className={styles.summaryText}>{article.summary}</p>
           </section>
         )}
 
@@ -188,19 +188,19 @@ export const KnowledgeArticlePage: React.FC = () => {
           (article.technologyIds && article.technologyIds.length > 0) ||
           (article.sourceIds && article.sourceIds.length > 0)) && (
           <section className={styles.relationshipSection} aria-label="Associated metadata and relationships">
-            <h3 className={styles.sectionHeading} style={{ fontSize: '14px' }}>
+            <h3 className={styles.subSectionHeading}>
               Linked Taxonomy & Architecture Relationships
             </h3>
 
             {article.tagIds && article.tagIds.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div className={styles.relationshipGroup}>
                 <span className="text-caption">
-                  <Tag size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                  <Tag size={12} className={styles.relationshipIcon} />
                   Tags ({article.tagIds.length})
                 </span>
                 <div className={styles.idList}>
                   {article.tagIds.map((tagId) => (
-                    <span key={tagId} className="text-code" style={{ padding: '2px 6px', background: 'var(--color-surface-base)', borderRadius: '4px', fontSize: '11px' }}>
+                    <span key={tagId} className={styles.idTag}>
                       {tagId}
                     </span>
                   ))}
@@ -209,14 +209,14 @@ export const KnowledgeArticlePage: React.FC = () => {
             )}
 
             {article.productIds && article.productIds.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div className={styles.relationshipGroup}>
                 <span className="text-caption">
-                  <Layers size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                  <Layers size={12} className={styles.relationshipIcon} />
                   Products ({article.productIds.length})
                 </span>
                 <div className={styles.idList}>
                   {article.productIds.map((prodId) => (
-                    <span key={prodId} className="text-code" style={{ padding: '2px 6px', background: 'var(--color-surface-base)', borderRadius: '4px', fontSize: '11px' }}>
+                    <span key={prodId} className={styles.idTag}>
                       {prodId}
                     </span>
                   ))}
@@ -225,14 +225,14 @@ export const KnowledgeArticlePage: React.FC = () => {
             )}
 
             {article.technologyIds && article.technologyIds.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div className={styles.relationshipGroup}>
                 <span className="text-caption">
-                  <Cpu size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                  <Cpu size={12} className={styles.relationshipIcon} />
                   Technologies ({article.technologyIds.length})
                 </span>
                 <div className={styles.idList}>
                   {article.technologyIds.map((techId) => (
-                    <span key={techId} className="text-code" style={{ padding: '2px 6px', background: 'var(--color-surface-base)', borderRadius: '4px', fontSize: '11px' }}>
+                    <span key={techId} className={styles.idTag}>
                       {techId}
                     </span>
                   ))}
@@ -241,14 +241,14 @@ export const KnowledgeArticlePage: React.FC = () => {
             )}
 
             {article.sourceIds && article.sourceIds.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div className={styles.relationshipGroup}>
                 <span className="text-caption">
-                  <BookOpen size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                  <BookOpen size={12} className={styles.relationshipIcon} />
                   Sources ({article.sourceIds.length})
                 </span>
                 <div className={styles.idList}>
                   {article.sourceIds.map((srcId) => (
-                    <span key={srcId} className="text-code" style={{ padding: '2px 6px', background: 'var(--color-surface-base)', borderRadius: '4px', fontSize: '11px' }}>
+                    <span key={srcId} className={styles.idTag}>
                       {srcId}
                     </span>
                   ))}

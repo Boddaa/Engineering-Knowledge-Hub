@@ -1,5 +1,34 @@
-import type { KnowledgeStatus, VerificationStatus } from '../types/knowledgeTypes';
+import type { KnowledgeStatus, VerificationStatus, SearchSortOption } from '../types/knowledgeTypes';
 import type { BadgeVariant } from '@/components/ui/Badge';
+
+/**
+ * Valid sort dimensions supported by the search API contract.
+ */
+export const VALID_SEARCH_SORT_OPTIONS: readonly SearchSortOption[] = [
+  'Relevance',
+  'RecentlyUpdated',
+  'RecentlyCreated',
+  'TitleAsc',
+  'TitleDesc',
+] as const;
+
+/**
+ * Type guard verifying if a value matches a supported SearchSortOption.
+ */
+export function isValidSearchSortOption(value: unknown): value is SearchSortOption {
+  return typeof value === 'string' && VALID_SEARCH_SORT_OPTIONS.includes(value as SearchSortOption);
+}
+
+/**
+ * Normalizes URL sort parameters safely to prevent passing invalid values to the API.
+ * Defaults safely to 'Relevance'.
+ */
+export function normalizeSearchSortOption(value: string | null | undefined): SearchSortOption {
+  if (value && isValidSearchSortOption(value)) {
+    return value;
+  }
+  return 'Relevance';
+}
 
 /**
  * Normalizes backend KnowledgeStatus which may arrive as either an integer or string.

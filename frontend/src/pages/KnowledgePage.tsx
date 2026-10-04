@@ -52,7 +52,7 @@ export const KnowledgePage: React.FC = () => {
         {/* Search Toolbar */}
         <div className={styles.searchToolbar} role="search" aria-label="Search knowledge articles">
           <form className={styles.searchForm} onSubmit={handleFormSubmit}>
-            <div style={{ flex: 1 }}>
+            <div className={styles.searchInputWrapper}>
               <Input
                 size="sm"
                 value={searchQuery}
@@ -106,7 +106,7 @@ export const KnowledgePage: React.FC = () => {
               onClick={handleClearQuery}
               aria-label="Clear active search query"
             >
-              <X size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> Clear filter
+              <X size={12} className={styles.clearSearchIcon} /> Clear filter
             </button>
           </div>
         )}
@@ -116,13 +116,13 @@ export const KnowledgePage: React.FC = () => {
           <div className={styles.skeletonList} aria-busy="true" aria-label="Loading knowledge articles">
             {[1, 2, 3, 4].map((n) => (
               <div key={n} className={styles.skeletonCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className={styles.skeletonHeader}>
                   <Skeleton variant="text" width="60%" height={22} />
                   <Skeleton variant="rectangular" width={80} height={20} />
                 </div>
                 <Skeleton variant="text" width="95%" height={14} />
                 <Skeleton variant="text" width="80%" height={14} />
-                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                <div className={styles.skeletonFooter}>
                   <Skeleton variant="rectangular" width={100} height={16} />
                   <Skeleton variant="rectangular" width={60} height={16} />
                 </div>
@@ -149,7 +149,7 @@ export const KnowledgePage: React.FC = () => {
             description={
               searchQuery.trim() !== ''
                 ? `No articles matched "${searchQuery}". Try a different search term or clear the filter.`
-                : 'No knowledge articles are currently published in the knowledge repository.'
+                : 'No knowledge articles are currently available in the knowledge repository.'
             }
             action={
               searchQuery.trim() !== '' ? (

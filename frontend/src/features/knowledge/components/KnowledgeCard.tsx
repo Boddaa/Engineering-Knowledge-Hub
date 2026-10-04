@@ -62,7 +62,7 @@ export const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ article }) => {
           )}
 
           {article.slug && (
-            <span className="text-code" style={{ fontSize: '11px' }}>
+            <span className={styles.slugText}>
               /{article.slug}
             </span>
           )}

@@ -133,3 +133,62 @@
   flex-direction: column;
   gap: var(--space-lg);
 }
+
+.skeletonBadges {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.slugBadge {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.metaIcon {
+  display: inline;
+  vertical-align: middle;
+  margin-right: var(--space-xs);
+}
+
+.summaryTitle {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 13px;
+  color: var(--color-accent-primary);
+}
+
+.summaryText {
+  margin: 0;
+}
+
+.subSectionHeading {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: var(--space-xs);
+  margin: 0;
+}
+
+.relationshipGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.relationshipIcon {
+  display: inline;
+  vertical-align: middle;
+  margin-right: var(--space-xs);
+}
+
+.idTag {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  padding: 2px var(--space-xs);
+  background-color: var(--color-surface-base);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+}
+

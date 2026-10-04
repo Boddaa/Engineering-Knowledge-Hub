@@ -18,9 +18,14 @@ export function useKnowledgeArticle(id: KnowledgeArticleId | undefined): UseKnow
   const [isNotFound, setIsNotFound] = useState<boolean>(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef<number>(0);
 
   const fetchArticle = useCallback(async () => {
+    // Generate new request sequence identity
+    const currentRequestId = ++requestIdRef.current;
+
     if (!id || id.trim() === '') {
+      setArticle(null);
       setIsLoading(false);
       setIsNotFound(true);
       setError('Article ID is missing or invalid.');
@@ -36,13 +41,26 @@ export function useKnowledgeArticle(id: KnowledgeArticleId | undefined): UseKnow
     setIsLoading(true);
     setError(null);
     setIsNotFound(false);
+    setArticle(null);
 
     try {
       const data = await knowledgeApi.getArticle(id, { signal: controller.signal });
+
+      // Guard: Discard results if an obsolete request
+      if (requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
       setArticle(data);
     } catch (err: unknown) {
+      // Guard: Discard errors if an obsolete request
+      if (requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
       if (err instanceof ApiError) {
         if (err.status === 408) {
+          // Ignored aborted request
           return;
         }
         if (err.status === 404) {
@@ -55,13 +73,18 @@ export function useKnowledgeArticle(id: KnowledgeArticleId | undefined): UseKnow
         setError('An unexpected error occurred while loading article details.');
       }
     } finally {
-      setIsLoading(false);
+      // Guard: Only the active/latest request is permitted to turn off loading state
+      if (requestIdRef.current === currentRequestId) {
+        setIsLoading(false);
+      }
     }
   }, [id]);
 
   useEffect(() => {
     fetchArticle();
     return () => {
+      // Invalidate active request sequence and abort in-flight fetch
+      requestIdRef.current++;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
