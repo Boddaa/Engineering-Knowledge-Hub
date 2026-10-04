@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import {
   HomePage,
   KnowledgePage,
+  KnowledgeArticlePage,
   ProjectsPage,
   NotesPage,
   BoardsPage,
@@ -21,6 +22,10 @@ export const router = createBrowserRouter([
       {
         path: 'knowledge',
         element: <KnowledgePage />,
+      },
+      {
+        path: 'knowledge/:id',
+        element: <KnowledgeArticlePage />,
       },
       {
         path: 'projects',
