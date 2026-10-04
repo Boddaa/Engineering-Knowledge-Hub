@@ -3,6 +3,7 @@ namespace EngineeringKnowledgeHub.Api.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using EngineeringKnowledgeHub.Application.Documents;
+using EngineeringKnowledgeHub.Application.Enrichment;
 using EngineeringKnowledgeHub.Application.SemanticSearch;
 
 /// <summary>
@@ -86,4 +87,42 @@ public sealed record ChunkDocumentRequest(int? TargetChunkSize = null, int? Over
         TargetChunkSize.HasValue || OverlapTokens.HasValue
             ? new ChunkingOptions(TargetChunkSize ?? 500, OverlapTokens ?? 50)
             : null;
+}
+
+/// <summary>
+/// HTTP request contract for proposing a draft knowledge article synthesized from an imported document.
+/// Proposing creates an Unverified Draft article, strictly requiring human review before publication.
+/// </summary>
+public sealed record ProposeArticleFromDocumentRequest(
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Title is required.")]
+    string Title,
+    Guid AuthorId,
+    Guid KnowledgeTypeId,
+    string? Summary = null,
+    string? Content = null,
+    string? ReferenceText = null,
+    IReadOnlyCollection<Guid>? ProductIds = null,
+    IReadOnlyCollection<Guid>? TechnologyIds = null,
+    IReadOnlyCollection<Guid>? TagIds = null) : IValidatableObject
+{
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (string.IsNullOrWhiteSpace(Title))
+        {
+            yield return new ValidationResult("Title is required when proposing an article.", [nameof(Title)]);
+        }
+
+        if (AuthorId == Guid.Empty)
+        {
+            yield return new ValidationResult("AuthorId cannot be empty.", [nameof(AuthorId)]);
+        }
+
+        if (KnowledgeTypeId == Guid.Empty)
+        {
+            yield return new ValidationResult("KnowledgeTypeId cannot be empty.", [nameof(KnowledgeTypeId)]);
+        }
+    }
+
+    public ProposeArticleFromDocumentCommand ToCommand(Guid documentId) =>
+        new(documentId, AuthorId, KnowledgeTypeId, Title, Summary, Content, ReferenceText, ProductIds, TechnologyIds, TagIds);
 }

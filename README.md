@@ -159,7 +159,7 @@ The platform supports offline, on-premise AI generation and vector embeddings us
    * `503 Service Unavailable` with `Status: "Unavailable"` or `"ModelUnavailable"` when daemon is offline or models are missing.
 
 ## Current Phase
-**Phase 10: Local AI** (Completed)
+**Backend & REST API Surface** (Completed & Ready for Frontend)
 
 ## Roadmap Overview
 * Phase 0: Foundation ✅
@@ -173,4 +173,5 @@ The platform supports offline, on-premise AI generation and vector embeddings us
 * Phase 8: RAG (Retrieval-augmented generation assistance) ✅
 * Phase 9: Online Enrichment (External vendor and reference documentation imports) ✅
 * Phase 10: Local AI (On-premise LLM support, embeddings, and health monitoring) ✅
+* REST API: Full HTTP API Surface & Integration Test Coverage (13 Controllers) ✅
 

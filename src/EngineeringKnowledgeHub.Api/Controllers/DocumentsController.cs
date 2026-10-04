@@ -3,17 +3,21 @@ namespace EngineeringKnowledgeHub.Api.Controllers;
 using EngineeringKnowledgeHub.Api.Models;
 using EngineeringKnowledgeHub.Application.Documents;
 using EngineeringKnowledgeHub.Application.DTOs;
+using EngineeringKnowledgeHub.Application.Enrichment;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
-/// Endpoints for document upload, retrieval, text processing, and chunking.
+/// Endpoints for document upload, retrieval, text processing, chunking, and knowledge proposal.
 /// </summary>
 [ApiController]
 [Route("api/documents")]
-public sealed class DocumentsController(IDocumentService documentService) : ControllerBase
+public sealed class DocumentsController(
+    IDocumentService documentService,
+    IExternalEnrichmentService enrichmentService) : ControllerBase
 {
     private readonly IDocumentService _documentService = documentService ?? throw new ArgumentNullException(nameof(documentService));
+    private readonly IExternalEnrichmentService _enrichmentService = enrichmentService ?? throw new ArgumentNullException(nameof(enrichmentService));
 
     /// <summary>
     /// Registers/uploads a new document attached to a knowledge source.
@@ -121,6 +125,48 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         }
 
         var result = await _documentService.ChunkDocumentAsync(id, request?.ToOptions(), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Proposes a new draft knowledge article synthesized from an imported document.
+    /// Proposing creates an Unverified Draft article, strictly requiring human review before publication.
+    /// </summary>
+    [HttpPost("{id:guid}/propose-article")]
+    [ProducesResponseType<KnowledgeArticleDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ProposeArticle(
+        Guid id,
+        [FromBody] ProposeArticleFromDocumentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty)
+        {
+            return EmptyGuidError("Document ID");
+        }
+
+        if (request is null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation Error",
+                Detail = "Request body cannot be null."
+            });
+        }
+
+        if (request.AuthorId == Guid.Empty)
+        {
+            return EmptyGuidError("AuthorId");
+        }
+
+        if (request.KnowledgeTypeId == Guid.Empty)
+        {
+            return EmptyGuidError("KnowledgeTypeId");
+        }
+
+        var result = await _enrichmentService.ProposeArticleFromDocumentAsync(request.ToCommand(id), cancellationToken);
         return Ok(result);
     }
 

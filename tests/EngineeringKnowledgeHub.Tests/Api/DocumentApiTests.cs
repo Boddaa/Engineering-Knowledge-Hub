@@ -259,4 +259,135 @@ public class DocumentApiTests : IClassFixture<CustomWebApplicationFactory>
         Assert.NotNull(problem);
         Assert.Equal(400, problem.Status);
     }
+
+    [Fact]
+    public async Task ProposeArticle_FromDocument_ShouldCreateDraftUnverifiedArticle_AndLinkToSource()
+    {
+        // 1. Upload and process a document
+        var authorId = Guid.NewGuid();
+        var uploadRequest = new UploadDocumentRequest(
+            FileName: "vendor_manual.txt",
+            ContentType: "text/plain",
+            SourceId: _factory.DefaultSourceId,
+            UploadedById: authorId,
+            Content: "Vendor manual section 1.2: Database failover procedure.");
+
+        var uploadResponse = await _client.PostAsJsonAsync("/api/documents", uploadRequest);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        var document = await uploadResponse.Content.ReadFromJsonAsync<DocumentDto>();
+        Assert.NotNull(document);
+
+        var processResponse = await _client.PostAsJsonAsync($"/api/documents/{document.Id}/process", new ProcessDocumentRequest());
+        Assert.Equal(HttpStatusCode.OK, processResponse.StatusCode);
+
+        // 2. Propose draft article from document
+        var proposeRequest = new ProposeArticleFromDocumentRequest(
+            Title: $"Vendor Database Failover Guide {Guid.NewGuid():N}",
+            AuthorId: authorId,
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId,
+            Summary: "Database failover runbook from vendor documentation.",
+            Content: "Step 1: Check primary health. Step 2: Trigger promotion.");
+
+        var proposeResponse = await _client.PostAsJsonAsync($"/api/documents/{document.Id}/propose-article", proposeRequest);
+        Assert.Equal(HttpStatusCode.OK, proposeResponse.StatusCode);
+
+        var article = await proposeResponse.Content.ReadFromJsonAsync<KnowledgeArticleDto>();
+        Assert.NotNull(article);
+        Assert.NotEqual(Guid.Empty, article.Id);
+        Assert.Equal(proposeRequest.Title, article.Title);
+        Assert.Equal(KnowledgeStatus.Draft, article.Status);
+        Assert.Equal(VerificationStatus.Unverified, article.VerificationStatus);
+        Assert.Equal(authorId, article.AuthorId);
+        Assert.Equal(_factory.DefaultKnowledgeTypeId, article.KnowledgeTypeId);
+
+        // 3. Verify article is accessible via articles API
+        var getArticleResponse = await _client.GetAsync($"/api/knowledge/articles/{article.Id}");
+        Assert.Equal(HttpStatusCode.OK, getArticleResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProposeArticle_WithEmptyDocumentId_ShouldReturn400BadRequest()
+    {
+        var request = new ProposeArticleFromDocumentRequest(
+            Title: "Valid Title",
+            AuthorId: Guid.NewGuid(),
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId);
+
+        var response = await _client.PostAsJsonAsync($"/api/documents/{Guid.Empty}/propose-article", request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+        Assert.Contains("Document ID cannot be empty", problem.Detail);
+    }
+
+    [Fact]
+    public async Task ProposeArticle_WithEmptyAuthorId_ShouldReturn400BadRequest()
+    {
+        var request = new ProposeArticleFromDocumentRequest(
+            Title: "Valid Title",
+            AuthorId: Guid.Empty,
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId);
+
+        var response = await _client.PostAsJsonAsync($"/api/documents/{Guid.NewGuid()}/propose-article", request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Fact]
+    public async Task ProposeArticle_WithEmptyKnowledgeTypeId_ShouldReturn400BadRequest()
+    {
+        var request = new ProposeArticleFromDocumentRequest(
+            Title: "Valid Title",
+            AuthorId: Guid.NewGuid(),
+            KnowledgeTypeId: Guid.Empty);
+
+        var response = await _client.PostAsJsonAsync($"/api/documents/{Guid.NewGuid()}/propose-article", request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
+
+    [Fact]
+    public async Task ProposeArticle_WithNonExistentDocument_ShouldReturn404NotFound()
+    {
+        var request = new ProposeArticleFromDocumentRequest(
+            Title: "Valid Title",
+            AuthorId: Guid.NewGuid(),
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId);
+
+        var missingDocumentId = Guid.NewGuid();
+        var response = await _client.PostAsJsonAsync($"/api/documents/{missingDocumentId}/propose-article", request);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(404, problem.Status);
+        Assert.Equal("Not Found", problem.Title);
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public async Task ProposeArticle_WithWhitespaceTitle_ShouldReturn400BadRequest(string whitespaceTitle)
+    {
+        var request = new ProposeArticleFromDocumentRequest(
+            Title: whitespaceTitle,
+            AuthorId: Guid.NewGuid(),
+            KnowledgeTypeId: _factory.DefaultKnowledgeTypeId);
+
+        var response = await _client.PostAsJsonAsync($"/api/documents/{Guid.NewGuid()}/propose-article", request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+    }
 }
