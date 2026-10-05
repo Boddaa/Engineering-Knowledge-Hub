@@ -133,45 +133,6 @@
   color: var(--color-text-muted);
 }
 
-.suggestionsRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  flex-wrap: wrap;
-  margin-top: 2px;
-}
-
-.suggestionBadge {
-  background: var(--color-surface-floating);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 2px var(--space-xs);
-  font-family: var(--font-family-mono);
-  font-size: 11px;
-  color: var(--color-accent-primary);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-default);
-}
-
-.suggestionBadge:hover {
-  background-color: var(--color-surface-overlay);
-  border-color: var(--color-accent-primary);
-}
-
-.autoIdBtn {
-  background: transparent;
-  border: none;
-  color: var(--color-accent-primary);
-  font-family: var(--font-family-mono);
-  font-size: 11px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.autoIdBtn:hover {
-  text-decoration: underline;
-}
 
 .metaInfoPanel {
   display: flex;

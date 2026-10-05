@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AlertCircle, ArrowLeft, Save, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { AlertCircle, ArrowLeft, Save } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import styles from './KnowledgeArticleForm.module.css';
@@ -22,30 +22,14 @@ export interface FormValidationErrors {
   authorId?: string;
 }
 
-export interface DiscoveredKnowledgeType {
-  id: string;
-  name?: string;
-}
-
 export interface KnowledgeArticleFormProps {
   mode: 'create' | 'edit';
+  articleId?: string;
   initialData?: Partial<KnowledgeArticleFormData>;
   isSubmitting: boolean;
   apiError: string | null;
   onSubmit: (data: KnowledgeArticleFormData) => void;
   onCancel: () => void;
-  discoveredKnowledgeTypes?: DiscoveredKnowledgeType[];
-}
-
-function generateDefaultUuid(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }
 
 export function validateArticleForm(
@@ -101,23 +85,44 @@ export function validateArticleForm(
 
 export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
   mode,
+  articleId,
   initialData = {},
   isSubmitting,
   apiError,
   onSubmit,
   onCancel,
-  discoveredKnowledgeTypes = [],
 }) => {
   const [formData, setFormData] = useState<KnowledgeArticleFormData>({
     title: initialData.title ?? '',
     slug: initialData.slug ?? '',
     summary: initialData.summary ?? '',
     content: initialData.content ?? '',
-    knowledgeTypeId: initialData.knowledgeTypeId ?? (discoveredKnowledgeTypes[0]?.id || ''),
-    authorId: initialData.authorId ?? (mode === 'create' ? generateDefaultUuid() : ''),
+    knowledgeTypeId: initialData.knowledgeTypeId ?? '',
+    authorId: initialData.authorId ?? '',
   });
 
   const [errors, setErrors] = useState<FormValidationErrors>({});
+
+  // Track the identity of the data currently hydrated in the form
+  const hydratedIdentityRef = useRef<string | null>(null);
+
+  // Rehydrate form state when initialData/articleId changes without overwriting active edits
+  useEffect(() => {
+    const currentTargetIdentity = mode === 'edit' ? (articleId || initialData.title || 'edit-article') : 'create';
+
+    if (currentTargetIdentity !== hydratedIdentityRef.current) {
+      hydratedIdentityRef.current = currentTargetIdentity;
+      setFormData({
+        title: initialData.title ?? '',
+        slug: initialData.slug ?? '',
+        summary: initialData.summary ?? '',
+        content: initialData.content ?? '',
+        knowledgeTypeId: initialData.knowledgeTypeId ?? '',
+        authorId: initialData.authorId ?? '',
+      });
+      setErrors({});
+    }
+  }, [mode, articleId, initialData]);
 
   const handleFieldChange = (field: keyof KnowledgeArticleFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -140,14 +145,6 @@ export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
     }
     setErrors({});
     onSubmit(formData);
-  };
-
-  const handleApplyDiscoveredType = (typeId: string) => {
-    handleFieldChange('knowledgeTypeId', typeId);
-  };
-
-  const handleGenerateAuthorId = () => {
-    handleFieldChange('authorId', generateDefaultUuid());
   };
 
   return (
@@ -224,25 +221,9 @@ export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
                 error={errors.knowledgeTypeId}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 disabled={isSubmitting}
+                helperText="Existing Knowledge Type UUID. Taxonomy selection will be introduced in a dedicated taxonomy phase."
                 aria-required="true"
               />
-              {discoveredKnowledgeTypes.length > 0 && (
-                <div className={styles.suggestionsRow}>
-                  <span className={styles.fieldHelper}>Known Types:</span>
-                  {discoveredKnowledgeTypes.slice(0, 3).map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={styles.suggestionBadge}
-                      onClick={() => handleApplyDiscoveredType(t.id)}
-                      title={`Use type: ${t.id}`}
-                    >
-                      <Sparkles size={10} style={{ display: 'inline', marginRight: 2 }} />
-                      {t.name || t.id.substring(0, 8)}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className={styles.fieldGroup}>
@@ -254,19 +235,9 @@ export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
                 error={errors.authorId}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 disabled={isSubmitting}
-                suffix={
-                  <button
-                    type="button"
-                    className={styles.autoIdBtn}
-                    onClick={handleGenerateAuthorId}
-                    title="Generate new author UUID"
-                  >
-                    New UUID
-                  </button>
-                }
+                helperText="Existing user UUID associated with the article author."
                 aria-required="true"
               />
-              <span className={styles.fieldHelper}>Author identity associated with this article.</span>
             </div>
           </div>
         )}

@@ -11,7 +11,6 @@ import {
   type KnowledgeArticleDto,
   KnowledgeArticleForm,
   type KnowledgeArticleFormData,
-  type DiscoveredKnowledgeType,
 } from '@/features/knowledge';
 import { ApiError } from '@/services/api/apiErrors';
 import styles from './KnowledgeArticleEditorPage.module.css';
@@ -30,9 +29,6 @@ export const KnowledgeArticleEditorPage: React.FC = () => {
   // Form submission & feedback state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  // Discovered types for create mode helper
-  const [discoveredTypes, setDiscoveredTypes] = useState<DiscoveredKnowledgeType[]>([]);
 
   // Request generation guard for async safety
   const requestIdRef = useRef<number>(0);
@@ -81,21 +77,9 @@ export const KnowledgeArticleEditorPage: React.FC = () => {
       fetchArticleForEditing();
     } else {
       setIsLoadingArticle(false);
-      // Discover known knowledge types to assist user in create mode
-      knowledgeApi
-        .searchArticles({ pageSize: 10 })
-        .then((res) => {
-          const uniqueTypes = new Map<string, DiscoveredKnowledgeType>();
-          res.items.forEach((item) => {
-            if (item.knowledgeTypeId && !uniqueTypes.has(item.knowledgeTypeId)) {
-              uniqueTypes.set(item.knowledgeTypeId, { id: item.knowledgeTypeId });
-            }
-          });
-          setDiscoveredTypes(Array.from(uniqueTypes.values()));
-        })
-        .catch(() => {
-          // Non-blocking discovery
-        });
+      setExistingArticle(null);
+      setArticleLoadError(null);
+      setIsNotFound(false);
     }
 
     return () => {
@@ -228,7 +212,9 @@ export const KnowledgeArticleEditorPage: React.FC = () => {
     >
       <div className={styles.container}>
         <KnowledgeArticleForm
+          key={isEditMode ? (existingArticle?.id || id) : 'create'}
           mode={isEditMode ? 'edit' : 'create'}
+          articleId={isEditMode ? (existingArticle?.id || id) : undefined}
           initialData={
             isEditMode && existingArticle
               ? {
@@ -245,7 +231,6 @@ export const KnowledgeArticleEditorPage: React.FC = () => {
           apiError={apiError}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          discoveredKnowledgeTypes={discoveredTypes}
         />
       </div>
     </PageShell>
