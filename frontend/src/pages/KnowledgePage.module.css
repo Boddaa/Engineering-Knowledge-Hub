@@ -23,13 +23,45 @@
   gap: var(--space-sm);
   flex: 1;
   min-width: 280px;
-  max-width: 580px;
+  max-width: 600px;
+}
+
+.searchInputWrapper {
+  flex: 1;
+}
+
+.clearInputButton {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+.clearInputButton:hover {
+  color: var(--color-text-primary);
+}
+
+.clearInputButton:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .filterControls {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
 }
 
 .sortSelect {
@@ -55,42 +87,34 @@
   box-shadow: var(--shadow-glow);
 }
 
+.sortSelect option {
+  background-color: var(--color-surface-floating);
+  color: var(--color-text-primary);
+}
+
 .sortLabel {
   font-size: 12px;
   color: var(--color-text-muted);
   font-family: var(--font-family-mono);
 }
 
-.activeQueryBanner {
+.resultsContextBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  padding: var(--space-xs) var(--space-md);
-  background-color: rgba(92, 225, 230, 0.05);
-  border: 1px solid rgba(92, 225, 230, 0.2);
-  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 0 var(--space-xs);
+}
+
+.resultsCount {
   font-size: 13px;
   color: var(--color-text-secondary);
 }
 
-.activeQueryText strong {
-  color: var(--color-accent-primary);
-}
-
-.clearSearchButton {
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  text-decoration: underline;
-  transition: color var(--duration-fast) var(--ease-default);
-}
-
-.clearSearchButton:hover {
+.resultsCount strong {
   color: var(--color-text-primary);
 }
 
@@ -116,15 +140,6 @@
   gap: var(--space-sm);
 }
 
-.searchInputWrapper {
-  flex: 1;
-}
-
-.clearSearchIcon {
-  display: inline;
-  vertical-align: middle;
-}
-
 .skeletonHeader {
   display: flex;
   justify-content: space-between;
@@ -136,4 +151,3 @@
   gap: var(--space-md);
   margin-top: var(--space-xs);
 }
-

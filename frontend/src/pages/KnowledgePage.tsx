@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, BookOpen, Plus } from 'lucide-react';
+import { Search, X, BookOpen, Plus, SlidersHorizontal } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -11,16 +12,21 @@ import {
   useKnowledgeSearch,
   KnowledgeCard,
   KnowledgePagination,
+  KnowledgeFilterPanel,
+  ActiveFilterChips,
   type SearchSortOption,
 } from '@/features/knowledge';
 import styles from './KnowledgePage.module.css';
 
 export const KnowledgePage: React.FC = () => {
   const navigate = useNavigate();
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+
   const {
     articles,
     totalCount,
     page,
+    pageSize,
     totalPages,
     hasPreviousPage,
     hasNextPage,
@@ -28,8 +34,14 @@ export const KnowledgePage: React.FC = () => {
     error,
     searchQuery,
     sortBy,
+    filters,
+    activeFilterCount,
+    hasActiveSearchOrFilters,
     setSearchQuery,
     executeSearch,
+    applyFilters,
+    removeFilter,
+    clearAllFilters,
     goToPage,
     changeSortBy,
     retry,
@@ -45,10 +57,14 @@ export const KnowledgePage: React.FC = () => {
     executeSearch('');
   };
 
+  // Calculate human-friendly range for result context
+  const startItem = totalCount > 0 ? (page - 1) * pageSize + 1 : 0;
+  const endItem = totalCount > 0 ? Math.min(page * pageSize, totalCount) : 0;
+
   return (
     <PageShell
       title="Knowledge"
-      description="Find engineering knowledge, solutions, incidents, and verified technical guidance."
+      description="Discover engineering documentation, technical specifications, runbooks, and verified solutions."
       headerActions={
         <Button
           variant="primary"
@@ -62,17 +78,29 @@ export const KnowledgePage: React.FC = () => {
       }
     >
       <div className={styles.pageContent}>
-        {/* Search Toolbar */}
-        <div className={styles.searchToolbar} role="search" aria-label="Search knowledge articles">
+        {/* Search & Discovery Toolbar */}
+        <div className={styles.searchToolbar} role="search" aria-label="Search and filter knowledge articles">
           <form className={styles.searchForm} onSubmit={handleFormSubmit}>
             <div className={styles.searchInputWrapper}>
               <Input
                 size="sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search knowledge articles..."
+                placeholder="Search engineering knowledge..."
                 prefix={<Search size={14} aria-hidden="true" />}
-                aria-label="Search knowledge articles"
+                suffix={
+                  searchQuery ? (
+                    <button
+                      type="button"
+                      className={styles.clearInputButton}
+                      onClick={handleClearQuery}
+                      aria-label="Clear search input"
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : undefined
+                }
+                aria-label="Search query"
               />
             </div>
             <Button
@@ -86,41 +114,69 @@ export const KnowledgePage: React.FC = () => {
             </Button>
           </form>
 
-          {/* Sort Selector */}
-          <div className={styles.filterControls}>
-            <label htmlFor="knowledge-sort-select" className={styles.sortLabel}>
-              Sort by:
-            </label>
-            <select
-              id="knowledge-sort-select"
-              className={styles.sortSelect}
-              value={sortBy}
-              onChange={(e) => changeSortBy(e.target.value as SearchSortOption)}
-              aria-label="Sort knowledge articles"
+          {/* Filter Toggle and Sort Selector */}
+          <div className={styles.toolbarActions}>
+            <Button
+              variant={isFilterPanelOpen || activeFilterCount > 0 ? 'subtle' : 'ghost'}
+              size="sm"
+              icon={<SlidersHorizontal size={14} />}
+              onClick={() => setIsFilterPanelOpen((prev) => !prev)}
+              aria-expanded={isFilterPanelOpen}
+              aria-label="Toggle search filters"
             >
-              <option value="Relevance">Relevance</option>
-              <option value="RecentlyUpdated">Recently Updated</option>
-              <option value="RecentlyCreated">Recently Created</option>
-              <option value="TitleAsc">Title (A–Z)</option>
-              <option value="TitleDesc">Title (Z–A)</option>
-            </select>
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="cyan" size="sm" style={{ marginLeft: 4 }}>
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+
+            <div className={styles.filterControls}>
+              <label htmlFor="knowledge-sort-select" className={styles.sortLabel}>
+                Sort:
+              </label>
+              <select
+                id="knowledge-sort-select"
+                className={styles.sortSelect}
+                value={sortBy}
+                onChange={(e) => changeSortBy(e.target.value as SearchSortOption)}
+                aria-label="Sort knowledge articles"
+              >
+                <option value="Relevance">Relevance</option>
+                <option value="RecentlyUpdated">Recently Updated</option>
+                <option value="RecentlyCreated">Recently Created</option>
+                <option value="TitleAsc">Title (A–Z)</option>
+                <option value="TitleDesc">Title (Z–A)</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Active Query Banner */}
-        {searchQuery.trim() !== '' && !isLoading && (
-          <div className={styles.activeQueryBanner}>
-            <span className={styles.activeQueryText}>
-              Showing results for query: <strong>"{searchQuery}"</strong> ({totalCount} found)
+        {/* Collapsible Structured Filter Panel */}
+        <KnowledgeFilterPanel
+          isOpen={isFilterPanelOpen}
+          onClose={() => setIsFilterPanelOpen(false)}
+          filters={filters}
+          onApplyFilters={applyFilters}
+          onResetFilters={clearAllFilters}
+        />
+
+        {/* Removable Active Filter Chips */}
+        <ActiveFilterChips
+          searchQuery={searchQuery}
+          filters={filters}
+          onClearQuery={handleClearQuery}
+          onRemoveFilter={removeFilter}
+          onClearAll={clearAllFilters}
+        />
+
+        {/* Results Context Count */}
+        {!isLoading && !error && totalCount > 0 && (
+          <div className={styles.resultsContextBar}>
+            <span className={styles.resultsCount}>
+              Showing <strong>{startItem}–{endItem}</strong> of <strong>{totalCount}</strong> articles
             </span>
-            <button
-              type="button"
-              className={styles.clearSearchButton}
-              onClick={handleClearQuery}
-              aria-label="Clear active search query"
-            >
-              <X size={12} className={styles.clearSearchIcon} /> Clear filter
-            </button>
           </div>
         )}
 
@@ -154,22 +210,35 @@ export const KnowledgePage: React.FC = () => {
           />
         )}
 
-        {/* Empty State */}
+        {/* Empty States */}
         {!isLoading && !error && articles.length === 0 && (
           <EmptyState
             icon={<BookOpen size={32} />}
-            title="No knowledge articles found"
+            title={
+              hasActiveSearchOrFilters
+                ? 'No matching knowledge articles'
+                : 'No knowledge articles found yet'
+            }
             description={
-              searchQuery.trim() !== ''
-                ? `No articles matched "${searchQuery}". Try a different search term or clear the filter.`
-                : 'No knowledge articles are currently available in the knowledge repository.'
+              hasActiveSearchOrFilters
+                ? 'No knowledge articles match your current search and filters. Try adjusting your query or clearing filters.'
+                : 'There are currently no engineering knowledge articles in the knowledge repository.'
             }
             action={
-              searchQuery.trim() !== '' ? (
-                <Button variant="subtle" size="sm" onClick={handleClearQuery}>
-                  Clear Search
+              hasActiveSearchOrFilters ? (
+                <Button variant="subtle" size="sm" onClick={clearAllFilters}>
+                  Clear Filters
                 </Button>
-              ) : undefined
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Plus size={14} />}
+                  onClick={() => navigate('/knowledge/new')}
+                >
+                  Create First Article
+                </Button>
+              )
             }
           />
         )}

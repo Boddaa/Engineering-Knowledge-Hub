@@ -1,13 +1,31 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { knowledgeApi } from '../api/knowledgeApi';
 import type {
   SearchArticleResultDto,
   PagedResult,
   SearchSortOption,
+  KnowledgeStatus,
+  VerificationStatus,
 } from '../types/knowledgeTypes';
-import { normalizeSearchSortOption } from '../utils/knowledgeFormatters';
+import {
+  normalizeSearchSortOption,
+  normalizeFilterStatus,
+  normalizeFilterVerificationStatus,
+  normalizeFilterUuid,
+  normalizePage,
+  normalizePageSize,
+} from '../utils/knowledgeFormatters';
 import { ApiError } from '@/services/api/apiErrors';
+
+export interface KnowledgeFilterState {
+  status?: KnowledgeStatus;
+  verificationStatus?: VerificationStatus;
+  knowledgeTypeId?: string;
+  productId?: string;
+  technologyId?: string;
+  tagId?: string;
+}
 
 export interface UseKnowledgeSearchResult {
   articles: SearchArticleResultDto[];
@@ -21,8 +39,15 @@ export interface UseKnowledgeSearchResult {
   error: string | null;
   searchQuery: string;
   sortBy: SearchSortOption;
+  filters: KnowledgeFilterState;
+  activeFilterCount: number;
+  hasActiveSearchOrFilters: boolean;
   setSearchQuery: (query: string) => void;
-  executeSearch: (queryToExecute?: string) => void;
+  executeSearch: (newQuery?: string) => void;
+  applyFilter: <K extends keyof KnowledgeFilterState>(key: K, value: KnowledgeFilterState[K]) => void;
+  applyFilters: (newFilters: Partial<KnowledgeFilterState>) => void;
+  removeFilter: (key: keyof KnowledgeFilterState) => void;
+  clearAllFilters: () => void;
   goToPage: (targetPage: number) => void;
   changeSortBy: (sort: SearchSortOption) => void;
   retry: () => void;
@@ -33,19 +58,62 @@ const DEFAULT_PAGE_SIZE = 10;
 export function useKnowledgeSearch(): UseKnowledgeSearchResult {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Read URL parameters as source of truth with strict sort normalization
+  // Read and safely normalize URL parameters as source of truth
   const urlQuery = searchParams.get('q') || '';
-  const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-  const rawSortBy = searchParams.get('sortBy');
-  const urlSortBy = normalizeSearchSortOption(rawSortBy);
+  const urlStatus = normalizeFilterStatus(searchParams.get('status'));
+  const urlVerificationStatus = normalizeFilterVerificationStatus(searchParams.get('verificationStatus'));
+  const urlKnowledgeTypeId = normalizeFilterUuid(searchParams.get('knowledgeTypeId'));
+  const urlProductId = normalizeFilterUuid(searchParams.get('productId'));
+  const urlTechnologyId = normalizeFilterUuid(searchParams.get('technologyId'));
+  const urlTagId = normalizeFilterUuid(searchParams.get('tagId'));
+  const urlSortBy = normalizeSearchSortOption(searchParams.get('sortBy'));
+  const urlPage = normalizePage(searchParams.get('page'));
+  const urlPageSize = normalizePageSize(searchParams.get('pageSize'), DEFAULT_PAGE_SIZE);
 
-  // Local query state for the input field before submission
+  // Local query state for the input field before user executes search
   const [searchQuery, setSearchQuery] = useState(urlQuery);
 
-  // Keep local query in sync if URL changes (e.g. browser back/forward)
+  // Keep local query in sync if URL changes (e.g. browser back/forward or direct URL navigation)
   useEffect(() => {
     setSearchQuery(urlQuery);
   }, [urlQuery]);
+
+  // Structured active filter state
+  const filters: KnowledgeFilterState = useMemo(
+    () => ({
+      status: urlStatus,
+      verificationStatus: urlVerificationStatus,
+      knowledgeTypeId: urlKnowledgeTypeId,
+      productId: urlProductId,
+      technologyId: urlTechnologyId,
+      tagId: urlTagId,
+    }),
+    [
+      urlStatus,
+      urlVerificationStatus,
+      urlKnowledgeTypeId,
+      urlProductId,
+      urlTechnologyId,
+      urlTagId,
+    ]
+  );
+
+  // Active filter count (excluding query, sortBy, pagination)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.status) count++;
+    if (filters.verificationStatus) count++;
+    if (filters.knowledgeTypeId) count++;
+    if (filters.productId) count++;
+    if (filters.technologyId) count++;
+    if (filters.tagId) count++;
+    return count;
+  }, [filters]);
+
+  const hasActiveSearchOrFilters = useMemo(
+    () => Boolean(urlQuery.trim() || activeFilterCount > 0 || urlSortBy !== 'Relevance' || urlPage > 1),
+    [urlQuery, activeFilterCount, urlSortBy, urlPage]
+  );
 
   // Request state
   const [results, setResults] = useState<PagedResult<SearchArticleResultDto> | null>(null);
@@ -57,7 +125,6 @@ export function useKnowledgeSearch(): UseKnowledgeSearchResult {
   const requestIdRef = useRef<number>(0);
 
   const fetchArticles = useCallback(async () => {
-    // Generate new request sequence identity
     const currentRequestId = ++requestIdRef.current;
 
     // Abort previous in-flight search
@@ -74,9 +141,15 @@ export function useKnowledgeSearch(): UseKnowledgeSearchResult {
       const data = await knowledgeApi.searchArticles(
         {
           query: urlQuery || undefined,
-          page: urlPage,
-          pageSize: DEFAULT_PAGE_SIZE,
+          status: urlStatus,
+          verificationStatus: urlVerificationStatus,
+          knowledgeTypeId: urlKnowledgeTypeId,
+          productId: urlProductId,
+          technologyId: urlTechnologyId,
+          tagId: urlTagId,
           sortBy: urlSortBy,
+          page: urlPage,
+          pageSize: urlPageSize,
         },
         { signal: controller.signal }
       );
@@ -105,7 +178,18 @@ export function useKnowledgeSearch(): UseKnowledgeSearchResult {
         setIsLoading(false);
       }
     }
-  }, [urlQuery, urlPage, urlSortBy]);
+  }, [
+    urlQuery,
+    urlStatus,
+    urlVerificationStatus,
+    urlKnowledgeTypeId,
+    urlProductId,
+    urlTechnologyId,
+    urlTagId,
+    urlSortBy,
+    urlPage,
+    urlPageSize,
+  ]);
 
   useEffect(() => {
     fetchArticles();
@@ -118,35 +202,105 @@ export function useKnowledgeSearch(): UseKnowledgeSearchResult {
     };
   }, [fetchArticles]);
 
-  const executeSearch = useCallback((newQuery?: string) => {
-    const targetQuery = (newQuery !== undefined ? newQuery : searchQuery).trim();
+  const executeSearch = useCallback(
+    (newQuery?: string) => {
+      const targetQuery = (newQuery !== undefined ? newQuery : searchQuery).trim();
+      const params = new URLSearchParams(searchParams);
+
+      if (targetQuery) {
+        params.set('q', targetQuery);
+      } else {
+        params.delete('q');
+      }
+
+      // Always reset to page 1 on new query execution
+      params.set('page', '1');
+
+      setSearchParams(params);
+    },
+    [searchQuery, searchParams, setSearchParams]
+  );
+
+  const applyFilter = useCallback(
+    <K extends keyof KnowledgeFilterState>(key: K, value: KnowledgeFilterState[K]) => {
+      const params = new URLSearchParams(searchParams);
+
+      if (value) {
+        params.set(key, String(value));
+      } else {
+        params.delete(key);
+      }
+
+      // Reset to page 1 when filter changes
+      params.set('page', '1');
+
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const applyFilters = useCallback(
+    (newFilters: Partial<KnowledgeFilterState>) => {
+      const params = new URLSearchParams(searchParams);
+
+      (Object.keys(newFilters) as Array<keyof KnowledgeFilterState>).forEach((key) => {
+        const value = newFilters[key];
+        if (value) {
+          params.set(key, String(value));
+        } else {
+          params.delete(key);
+        }
+      });
+
+      // Reset to page 1 when filters change
+      params.set('page', '1');
+
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const removeFilter = useCallback(
+    (key: keyof KnowledgeFilterState) => {
+      const params = new URLSearchParams(searchParams);
+      params.delete(key);
+      params.set('page', '1');
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const clearAllFilters = useCallback(() => {
     const params = new URLSearchParams();
-
-    if (targetQuery) {
-      params.set('q', targetQuery);
-    }
-    if (urlSortBy && urlSortBy !== 'Relevance') {
-      params.set('sortBy', urlSortBy);
-    }
-    // Always reset to page 1 on new search
-    params.set('page', '1');
-
+    setSearchQuery('');
     setSearchParams(params);
-  }, [searchQuery, urlSortBy, setSearchParams]);
+  }, [setSearchParams]);
 
-  const goToPage = useCallback((targetPage: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('page', String(Math.max(1, targetPage)));
-    setSearchParams(params);
-  }, [searchParams, setSearchParams]);
+  const goToPage = useCallback(
+    (targetPage: number) => {
+      const params = new URLSearchParams(searchParams);
+      params.set('page', String(Math.max(1, targetPage)));
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams]
+  );
 
-  const changeSortBy = useCallback((newSort: SearchSortOption) => {
-    const validatedSort = normalizeSearchSortOption(newSort);
-    const params = new URLSearchParams(searchParams);
-    params.set('sortBy', validatedSort);
-    params.set('page', '1');
-    setSearchParams(params);
-  }, [searchParams, setSearchParams]);
+  const changeSortBy = useCallback(
+    (newSort: SearchSortOption) => {
+      const validatedSort = normalizeSearchSortOption(newSort);
+      const params = new URLSearchParams(searchParams);
+
+      if (validatedSort !== 'Relevance') {
+        params.set('sortBy', validatedSort);
+      } else {
+        params.delete('sortBy');
+      }
+
+      params.set('page', '1');
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams]
+  );
 
   const totalCount = results?.totalCount ?? 0;
   const pageSize = results?.pageSize ?? DEFAULT_PAGE_SIZE;
@@ -166,8 +320,15 @@ export function useKnowledgeSearch(): UseKnowledgeSearchResult {
     error,
     searchQuery,
     sortBy: urlSortBy,
+    filters,
+    activeFilterCount,
+    hasActiveSearchOrFilters,
     setSearchQuery,
     executeSearch,
+    applyFilter,
+    applyFilters,
+    removeFilter,
+    clearAllFilters,
     goToPage,
     changeSortBy,
     retry: fetchArticles,

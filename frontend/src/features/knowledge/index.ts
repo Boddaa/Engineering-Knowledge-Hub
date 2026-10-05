@@ -12,4 +12,5 @@ export * from './components/GovernanceActionBar';
 export * from './components/GovernanceConfirmModal';
 export * from './components/KnowledgeVersionsList';
 export * from './components/KnowledgeAuditTrail';
+export * from './components/KnowledgeFilterPanel';
 export * from './utils/knowledgeFormatters';

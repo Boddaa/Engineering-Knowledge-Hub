@@ -135,3 +135,109 @@ export function formatDate(dateString: string | null | undefined): string {
     return dateString;
   }
 }
+
+/**
+ * Valid knowledge statuses supported by the backend search contract.
+ */
+export const VALID_KNOWLEDGE_STATUSES: readonly KnowledgeStatus[] = [
+  'Draft',
+  'PendingReview',
+  'Verified',
+  'Published',
+  'Deprecated',
+  'Archived',
+] as const;
+
+/**
+ * Type guard verifying if a value matches a supported KnowledgeStatus.
+ */
+export function isValidKnowledgeStatus(value: unknown): value is KnowledgeStatus {
+  return typeof value === 'string' && VALID_KNOWLEDGE_STATUSES.includes(value as KnowledgeStatus);
+}
+
+/**
+ * Safely parses and normalizes status parameter from URL search params.
+ * Returns undefined if missing or invalid.
+ */
+export function normalizeFilterStatus(value: string | null | undefined): KnowledgeStatus | undefined {
+  if (!value) return undefined;
+  if (isValidKnowledgeStatus(value)) return value;
+  // If numeric string
+  const num = parseInt(value, 10);
+  if (!isNaN(num) && num >= 1 && num <= 6) {
+    return normalizeKnowledgeStatus(num);
+  }
+  return undefined;
+}
+
+/**
+ * Valid verification statuses supported by the backend search contract.
+ */
+export const VALID_VERIFICATION_STATUSES: readonly VerificationStatus[] = [
+  'Unverified',
+  'Verified',
+  'Rejected',
+] as const;
+
+/**
+ * Type guard verifying if a value matches a supported VerificationStatus.
+ */
+export function isValidVerificationStatus(value: unknown): value is VerificationStatus {
+  return typeof value === 'string' && VALID_VERIFICATION_STATUSES.includes(value as VerificationStatus);
+}
+
+/**
+ * Safely parses and normalizes verification status parameter from URL search params.
+ * Returns undefined if missing or invalid.
+ */
+export function normalizeFilterVerificationStatus(value: string | null | undefined): VerificationStatus | undefined {
+  if (!value) return undefined;
+  if (isValidVerificationStatus(value)) return value;
+  const num = parseInt(value, 10);
+  if (!isNaN(num) && num >= 1 && num <= 3) {
+    return normalizeVerificationStatus(num);
+  }
+  return undefined;
+}
+
+/**
+ * Standard UUID regex for validating identifier filters.
+ */
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Type guard verifying if a string is a valid UUID format.
+ */
+export function isValidUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_REGEX.test(value.trim());
+}
+
+/**
+ * Safely normalizes UUID filter parameters from URL search params.
+ * Returns undefined if missing or invalid UUID format.
+ */
+export function normalizeFilterUuid(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return UUID_REGEX.test(trimmed) ? trimmed : undefined;
+}
+
+/**
+ * Safely normalizes page number from URL search params.
+ * Ensures page is at least 1.
+ */
+export function normalizePage(value: string | null | undefined): number {
+  if (!value) return 1;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+}
+
+/**
+ * Safely normalizes page size from URL search params.
+ * Ensures page size is between 1 and 100, defaulting to defaultSize.
+ */
+export function normalizePageSize(value: string | null | undefined, defaultSize = 10): number {
+  if (!value) return defaultSize;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) || parsed < 1 || parsed > 100 ? defaultSize : parsed;
+}
