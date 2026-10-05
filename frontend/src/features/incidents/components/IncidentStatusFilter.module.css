@@ -1,0 +1,66 @@
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  padding: var(--space-xs);
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.filterButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 6px 12px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.filterButton:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-overlay);
+}
+
+.filterButton:focus-visible {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-glow);
+}
+
+.filterButton.isActive {
+  background-color: var(--color-surface-overlay);
+  border-color: var(--color-border-default);
+  color: var(--color-accent-primary);
+  font-weight: 600;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dotOpen {
+  background-color: var(--color-status-warning);
+}
+
+.dotInvestigating {
+  background-color: var(--color-accent-primary);
+}
+
+.dotResolved {
+  background-color: var(--color-status-success);
+}
+
+.dotClosed {
+  background-color: var(--color-text-muted);
+}

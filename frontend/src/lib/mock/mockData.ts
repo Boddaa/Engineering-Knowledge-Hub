@@ -25,6 +25,7 @@ export const mockCurrentUser: UserSummary = {
 export const mockNavigationItems: NavItem[] = [
   { id: 'home', label: 'Home', path: '/', icon: 'Home' },
   { id: 'knowledge', label: 'Knowledge', path: '/knowledge', icon: 'BookOpen', badge: 142 },
+  { id: 'incidents', label: 'Incidents', path: '/incidents', icon: 'AlertTriangle' },
   { id: 'projects', label: 'Projects', path: '/projects', icon: 'FolderKanban', badge: 8 },
   { id: 'notes', label: 'Notes', path: '/notes', icon: 'FileText', badge: 24 },
   { id: 'boards', label: 'Boards', path: '/boards', icon: 'LayoutGrid' },

@@ -6,6 +6,7 @@ import {
   FolderKanban,
   FileText,
   LayoutGrid,
+  AlertTriangle,
   Plus,
   Folder,
   Network,
@@ -37,6 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Home size={18} />;
       case 'BookOpen':
         return <BookOpen size={18} />;
+      case 'AlertTriangle':
+        return <AlertTriangle size={18} />;
       case 'FolderKanban':
         return <FolderKanban size={18} />;
       case 'FileText':

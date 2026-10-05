@@ -18,7 +18,11 @@ import type {
   ProductId,
   TechnologyId,
   VersionId,
+  KnowledgeFeedbackDto,
+  SubmitFeedbackRequest,
 } from '../types/knowledgeTypes';
+import type { IncidentDto } from '@/features/incidents/types/incidentTypes';
+
 
 /**
  * Knowledge Feature API Service.
@@ -282,4 +286,50 @@ export const knowledgeApi = {
       params: params as Record<string, string | number | boolean | undefined | null>,
     });
   },
+
+  // --- Article Helpfulness Feedback (/api/feedback or /api/knowledge/articles/{articleId}/feedback) ---
+
+  /**
+   * Submits helpfulness rating and feedback for a published knowledge article.
+   * Endpoint: POST /api/knowledge/articles/{articleId}/feedback
+   */
+  submitFeedback(
+    articleId: KnowledgeArticleId,
+    request: SubmitFeedbackRequest,
+    options?: RequestOptions
+  ): Promise<KnowledgeFeedbackDto> {
+    return apiClient.post<KnowledgeFeedbackDto>(
+      `/api/knowledge/articles/${articleId}/feedback`,
+      request,
+      options
+    );
+  },
+
+  /**
+   * Retrieves all user feedback recorded for a specific knowledge article.
+   * Endpoint: GET /api/knowledge/articles/{articleId}/feedback
+   */
+  getFeedbackForArticle(
+    articleId: KnowledgeArticleId,
+    options?: RequestOptions
+  ): Promise<KnowledgeFeedbackDto[]> {
+    return apiClient.get<KnowledgeFeedbackDto[]>(
+      `/api/knowledge/articles/${articleId}/feedback`,
+      options
+    );
+  },
+
+  // --- Linked Operational Incidents (/api/incidents/article/{articleId}) ---
+
+  /**
+   * Retrieves all operational incidents linked to a specific knowledge article.
+   * Endpoint: GET /api/incidents/article/{articleId}
+   */
+  getIncidentsForArticle(
+    articleId: KnowledgeArticleId,
+    options?: RequestOptions
+  ): Promise<IncidentDto[]> {
+    return apiClient.get<IncidentDto[]>(`/api/incidents/article/${articleId}`, options);
+  },
 };
+

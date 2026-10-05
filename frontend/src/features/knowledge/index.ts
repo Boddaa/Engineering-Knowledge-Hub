@@ -13,4 +13,9 @@ export * from './components/GovernanceConfirmModal';
 export * from './components/KnowledgeVersionsList';
 export * from './components/KnowledgeAuditTrail';
 export * from './components/KnowledgeFilterPanel';
+export * from './components/KnowledgeFeedbackSection';
+export * from './components/KnowledgeLinkedIncidents';
+export * from './hooks/useKnowledgeFeedback';
+export * from './hooks/useKnowledgeIncidents';
 export * from './utils/knowledgeFormatters';
+

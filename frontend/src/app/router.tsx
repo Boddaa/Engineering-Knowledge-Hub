@@ -5,6 +5,9 @@ import {
   KnowledgePage,
   KnowledgeArticlePage,
   KnowledgeArticleEditorPage,
+  IncidentsPage,
+  IncidentDetailPage,
+  IncidentCreatePage,
   ProjectsPage,
   NotesPage,
   BoardsPage,
@@ -35,6 +38,18 @@ export const router = createBrowserRouter([
       {
         path: 'knowledge/:id/edit',
         element: <KnowledgeArticleEditorPage />,
+      },
+      {
+        path: 'incidents',
+        element: <IncidentsPage />,
+      },
+      {
+        path: 'incidents/new',
+        element: <IncidentCreatePage />,
+      },
+      {
+        path: 'incidents/:id',
+        element: <IncidentDetailPage />,
       },
       {
         path: 'projects',

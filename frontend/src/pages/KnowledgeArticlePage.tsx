@@ -27,6 +27,8 @@ import {
   GovernanceConfirmModal,
   KnowledgeVersionsList,
   KnowledgeAuditTrail,
+  KnowledgeFeedbackSection,
+  KnowledgeLinkedIncidents,
   type GovernanceActionType,
   normalizeKnowledgeStatus,
   normalizeVerificationStatus,
@@ -371,11 +373,21 @@ export const KnowledgeArticlePage: React.FC = () => {
           </section>
         )}
 
+        {/* Linked Operational Incidents Section */}
+        <KnowledgeLinkedIncidents articleId={article.id} />
+
+        {/* Article Helpfulness Feedback Section */}
+        <KnowledgeFeedbackSection
+          articleId={article.id}
+          articleStatus={article.status}
+        />
+
         {/* Versions History Section */}
         <KnowledgeVersionsList
           versions={versions}
           isLoading={isLoadingVersions}
           error={versionsError}
+
           onRetry={refetchVersions}
         />
 

@@ -199,3 +199,32 @@ export interface SearchArticleQueryParams {
   page?: number;
   pageSize?: number;
 }
+
+/**
+ * User rating or feedback classification for a knowledge article.
+ * Domain enum: Helpful = 1, NotHelpful = 2, Outdated = 3, Inaccurate = 4
+ */
+export type FeedbackType = 'Helpful' | 'NotHelpful' | 'Outdated' | 'Inaccurate';
+
+/**
+ * Data transfer object projecting user article feedback.
+ */
+export interface KnowledgeFeedbackDto {
+  id: string;
+  articleId: KnowledgeArticleId;
+  userId: UserId;
+  feedbackType: FeedbackType | number;
+  comment: string | null;
+  createdAt: string;
+}
+
+/**
+ * HTTP request contract for submitting helpfulness feedback on a published article.
+ */
+export interface SubmitFeedbackRequest {
+  articleId?: KnowledgeArticleId;
+  userId: UserId;
+  feedbackType: FeedbackType | number;
+  comment?: string | null;
+}
+
