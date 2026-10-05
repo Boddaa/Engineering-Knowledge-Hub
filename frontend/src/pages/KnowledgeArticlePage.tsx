@@ -9,7 +9,6 @@ import {
   Tag,
   Layers,
   Cpu,
-  BookOpen,
   Edit3,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
@@ -36,6 +35,7 @@ import {
   getVerificationBadgeVariant,
   formatDate,
 } from '@/features/knowledge';
+import { ArticleSourcesSection } from '@/features/sources';
 import styles from './KnowledgeArticlePage.module.css';
 
 export const KnowledgeArticlePage: React.FC = () => {
@@ -300,8 +300,7 @@ export const KnowledgeArticlePage: React.FC = () => {
         {/* Relationships and Taxonomy Identifiers (Metadata only, no extra API calls) */}
         {((article.tagIds && article.tagIds.length > 0) ||
           (article.productIds && article.productIds.length > 0) ||
-          (article.technologyIds && article.technologyIds.length > 0) ||
-          (article.sourceIds && article.sourceIds.length > 0)) && (
+          (article.technologyIds && article.technologyIds.length > 0)) && (
           <section className={styles.relationshipSection} aria-label="Associated metadata and relationships">
             <h3 className={styles.subSectionHeading}>
               Linked Taxonomy & Architecture Relationships
@@ -354,24 +353,17 @@ export const KnowledgeArticlePage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {article.sourceIds && article.sourceIds.length > 0 && (
-              <div className={styles.relationshipGroup}>
-                <span className="text-caption">
-                  <BookOpen size={12} className={styles.relationshipIcon} />
-                  Sources ({article.sourceIds.length})
-                </span>
-                <div className={styles.idList}>
-                  {article.sourceIds.map((srcId) => (
-                    <span key={srcId} className={styles.idTag}>
-                      {srcId}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </section>
         )}
+
+        {/* Supporting Evidence & Knowledge Sources Section */}
+        <ArticleSourcesSection
+          articleId={article.id}
+          articleTitle={article.title}
+          sourceLinks={article.sourceLinks}
+          canManage={normalizedStatus !== 'Archived'}
+          onSourcesChanged={retry}
+        />
 
         {/* Linked Operational Incidents Section */}
         <KnowledgeLinkedIncidents articleId={article.id} />

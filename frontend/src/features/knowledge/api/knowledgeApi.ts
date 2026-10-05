@@ -17,6 +17,7 @@ import type {
   KnowledgeTagId,
   ProductId,
   TechnologyId,
+  SourceId,
   VersionId,
   KnowledgeFeedbackDto,
   SubmitFeedbackRequest,
@@ -216,6 +217,52 @@ export const knowledgeApi = {
   ): Promise<KnowledgeArticleDto> {
     return apiClient.delete<KnowledgeArticleDto>(
       `/api/knowledge/articles/${id}/technologies/${technologyId}`,
+      options
+    );
+  },
+
+  /**
+   * Retrieves all knowledge sources attached to a specific article.
+   * Endpoint: GET /api/knowledge/articles/{articleId}/sources
+   */
+  getArticleSources(
+    articleId: KnowledgeArticleId,
+    options?: RequestOptions
+  ): Promise<import('@/features/sources').KnowledgeSourceDto[]> {
+    return apiClient.get<import('@/features/sources').KnowledgeSourceDto[]>(
+      `/api/knowledge/articles/${articleId}/sources`,
+      options
+    );
+  },
+
+  /**
+   * Attaches a knowledge source to an article with optional reference citation.
+   * Endpoint: POST /api/knowledge/articles/{articleId}/sources/{sourceId}
+   */
+  attachSource(
+    articleId: KnowledgeArticleId,
+    sourceId: SourceId,
+    request?: { referenceText?: string | null },
+    options?: RequestOptions
+  ): Promise<KnowledgeArticleDto> {
+    return apiClient.post<KnowledgeArticleDto>(
+      `/api/knowledge/articles/${articleId}/sources/${sourceId}`,
+      request ?? {},
+      options
+    );
+  },
+
+  /**
+   * Detaches a knowledge source from an article.
+   * Endpoint: DELETE /api/knowledge/articles/{articleId}/sources/{sourceId}
+   */
+  detachSource(
+    articleId: KnowledgeArticleId,
+    sourceId: SourceId,
+    options?: RequestOptions
+  ): Promise<KnowledgeArticleDto> {
+    return apiClient.delete<KnowledgeArticleDto>(
+      `/api/knowledge/articles/${articleId}/sources/${sourceId}`,
       options
     );
   },
