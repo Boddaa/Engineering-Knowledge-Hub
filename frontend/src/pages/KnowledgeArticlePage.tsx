@@ -10,6 +10,7 @@ import {
   Layers,
   Cpu,
   BookOpen,
+  Edit3,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
@@ -111,15 +112,26 @@ export const KnowledgeArticlePage: React.FC = () => {
         </div>
       }
       headerActions={
-        <Button
-          variant="subtle"
-          size="md"
-          icon={<ArrowLeft size={15} />}
-          onClick={() => navigate('/knowledge')}
-          aria-label="Back to knowledge repository"
-        >
-          Back to Knowledge
-        </Button>
+        <div className={styles.headerActionGroup}>
+          <Button
+            variant="subtle"
+            size="md"
+            icon={<ArrowLeft size={15} />}
+            onClick={() => navigate('/knowledge')}
+            aria-label="Back to knowledge repository"
+          >
+            Back to Knowledge
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            icon={<Edit3 size={15} />}
+            onClick={() => navigate(`/knowledge/${article.id}/edit`)}
+            aria-label="Edit knowledge article"
+          >
+            Edit
+          </Button>
+        </div>
       }
     >
       <div className={styles.container}>

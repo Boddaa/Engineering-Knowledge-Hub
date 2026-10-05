@@ -12,6 +12,13 @@
   margin-bottom: var(--space-sm);
 }
 
+.headerActionGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+
 .articleHeader {
   display: flex;
   flex-direction: column;

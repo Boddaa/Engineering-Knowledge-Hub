@@ -4,6 +4,7 @@ import {
   HomePage,
   KnowledgePage,
   KnowledgeArticlePage,
+  KnowledgeArticleEditorPage,
   ProjectsPage,
   NotesPage,
   BoardsPage,
@@ -24,8 +25,16 @@ export const router = createBrowserRouter([
         element: <KnowledgePage />,
       },
       {
+        path: 'knowledge/new',
+        element: <KnowledgeArticleEditorPage />,
+      },
+      {
         path: 'knowledge/:id',
         element: <KnowledgeArticlePage />,
+      },
+      {
+        path: 'knowledge/:id/edit',
+        element: <KnowledgeArticleEditorPage />,
       },
       {
         path: 'projects',

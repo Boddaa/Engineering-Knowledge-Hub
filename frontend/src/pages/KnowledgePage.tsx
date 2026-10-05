@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, X, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, X, BookOpen, Plus } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +16,7 @@ import {
 import styles from './KnowledgePage.module.css';
 
 export const KnowledgePage: React.FC = () => {
+  const navigate = useNavigate();
   const {
     articles,
     totalCount,
@@ -47,6 +49,17 @@ export const KnowledgePage: React.FC = () => {
     <PageShell
       title="Knowledge"
       description="Find engineering knowledge, solutions, incidents, and verified technical guidance."
+      headerActions={
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Plus size={14} />}
+          onClick={() => navigate('/knowledge/new')}
+          aria-label="Create new knowledge article"
+        >
+          New Article
+        </Button>
+      }
     >
       <div className={styles.pageContent}>
         {/* Search Toolbar */}

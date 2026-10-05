@@ -1,0 +1,213 @@
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-xl);
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-subtle);
+  max-width: var(--max-width-content);
+  width: 100%;
+}
+
+.apiErrorBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background-color: rgba(255, 85, 85, 0.08);
+  border: 1px solid rgba(255, 85, 85, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--color-status-error);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.apiErrorIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.gridTwoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+@media (max-width: 640px) {
+  .gridTwoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fieldLabel {
+  font-family: var(--font-family-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fieldRequired {
+  color: var(--color-accent-primary);
+}
+
+.charCount {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.summaryTextarea {
+  width: 100%;
+  min-height: 90px;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-surface-input);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  transition: all var(--duration-fast) var(--ease-default);
+  box-sizing: border-box;
+}
+
+.summaryTextarea:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-glow);
+}
+
+.contentTextarea {
+  width: 100%;
+  min-height: 320px;
+  padding: var(--space-md);
+  background-color: var(--color-surface-input);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  transition: all var(--duration-fast) var(--ease-default);
+  box-sizing: border-box;
+}
+
+.contentTextarea:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-glow);
+}
+
+.hasError {
+  border-color: var(--color-status-error) !important;
+}
+
+.fieldError {
+  font-family: var(--font-family-sans);
+  font-size: 12px;
+  color: var(--color-status-error);
+}
+
+.fieldHelper {
+  font-family: var(--font-family-sans);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.suggestionsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.suggestionBadge {
+  background: var(--color-surface-floating);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-xs);
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  color: var(--color-accent-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.suggestionBadge:hover {
+  background-color: var(--color-surface-overlay);
+  border-color: var(--color-accent-primary);
+}
+
+.autoIdBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-accent-primary);
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.autoIdBtn:hover {
+  text-decoration: underline;
+}
+
+.metaInfoPanel {
+  display: flex;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-surface-floating);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaLabel {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metaValue {
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border-subtle);
+}
