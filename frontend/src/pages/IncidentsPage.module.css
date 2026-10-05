@@ -40,3 +40,17 @@
   font-size: 13px;
   color: var(--color-text-secondary);
 }
+
+.skeletonHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skeletonMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-xs);
+}
+

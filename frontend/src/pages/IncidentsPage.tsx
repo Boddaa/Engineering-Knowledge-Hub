@@ -62,13 +62,13 @@ export const IncidentsPage: React.FC = () => {
           <div className={styles.skeletonList} aria-label="Loading incidents list">
             {[1, 2, 3, 4].map((n) => (
               <div key={n} className={styles.skeletonCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className={styles.skeletonHeader}>
                   <Skeleton width="45%" height="22px" />
                   <Skeleton width="120px" height="20px" />
                 </div>
                 <Skeleton width="90%" height="16px" />
                 <Skeleton width="70%" height="16px" />
-                <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                <div className={styles.skeletonMeta}>
                   <Skeleton width="100px" height="14px" />
                   <Skeleton width="120px" height="14px" />
                 </div>
