@@ -110,6 +110,11 @@ export const DocumentProposeArticleModal: React.FC<DocumentProposeArticleModalPr
     }
   };
 
+  const isTitleValid = Boolean(title.trim()) && title.trim().length <= 200;
+  const isAuthorValid = Boolean(authorId.trim()) && UUID_REGEX.test(authorId.trim());
+  const isKnowledgeTypeValid = Boolean(knowledgeTypeId.trim()) && UUID_REGEX.test(knowledgeTypeId.trim());
+  const isSubmitDisabled = isSubmitting || !isTitleValid || !isAuthorValid || !isKnowledgeTypeValid;
+
   return (
     <div
       className={styles.backdrop}
@@ -226,8 +231,13 @@ export const DocumentProposeArticleModal: React.FC<DocumentProposeArticleModalPr
                     placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
                     disabled={isSubmitting}
                     required
+                    error={
+                      authorId.trim() && !UUID_REGEX.test(authorId.trim())
+                        ? 'Author ID must be a valid UUID'
+                        : undefined
+                    }
+                    helperText="Author/Engineer identity UUID"
                   />
-                  <span className={styles.fieldHint}>Author/Engineer identity UUID</span>
                 </div>
 
                 <div className={styles.fieldGroup}>
@@ -244,8 +254,13 @@ export const DocumentProposeArticleModal: React.FC<DocumentProposeArticleModalPr
                     placeholder="e.g. 11111111-1111-1111-1111-111111111111"
                     disabled={isSubmitting}
                     required
+                    error={
+                      knowledgeTypeId.trim() && !UUID_REGEX.test(knowledgeTypeId.trim())
+                        ? 'Knowledge Type ID must be a valid UUID'
+                        : undefined
+                    }
+                    helperText="Required taxonomy Knowledge Type UUID"
                   />
-                  <span className={styles.fieldHint}>Taxonomy Knowledge Type UUID</span>
                 </div>
               </div>
 
@@ -308,7 +323,7 @@ export const DocumentProposeArticleModal: React.FC<DocumentProposeArticleModalPr
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isSubmitting}
+                disabled={isSubmitDisabled}
                 isLoading={isSubmitting}
                 icon={<BookOpen size={16} />}
               >
