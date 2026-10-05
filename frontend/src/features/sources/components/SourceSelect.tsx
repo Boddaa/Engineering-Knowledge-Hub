@@ -92,7 +92,7 @@ export const SourceSelect: React.FC<SourceSelectProps> = ({
             onClick={refetch}
             aria-label="Retry loading sources"
           >
-            <RefreshCw size={12} style={{ marginRight: 4, display: 'inline' }} />
+            <RefreshCw size={12} className={styles.retryIcon} />
             Retry
           </button>
         </div>

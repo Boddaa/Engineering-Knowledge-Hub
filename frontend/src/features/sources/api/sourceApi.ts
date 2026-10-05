@@ -4,9 +4,6 @@ import type {
   KnowledgeSourceDto,
   GetSourcesQueryParams,
   AttachSourceRequest,
-  CreateKnowledgeSourceRequest,
-  UpdateKnowledgeSourceRequest,
-  UpdateTrustLevelRequest,
   SourceId,
 } from '../types/sourceTypes';
 
@@ -82,59 +79,5 @@ export const sourceApi = {
       options
     );
   },
-
-  /**
-   * Registers a new knowledge source.
-   * Endpoint: POST /api/sources
-   */
-  createSource(
-    request: CreateKnowledgeSourceRequest,
-    options?: RequestOptions
-  ): Promise<KnowledgeSourceDto> {
-    return apiClient.post<KnowledgeSourceDto>('/api/sources', request, options);
-  },
-
-  /**
-   * Updates an existing knowledge source's metadata.
-   * Endpoint: PUT /api/sources/{id}
-   */
-  updateSource(
-    id: SourceId,
-    request: UpdateKnowledgeSourceRequest,
-    options?: RequestOptions
-  ): Promise<KnowledgeSourceDto> {
-    return apiClient.put<KnowledgeSourceDto>(`/api/sources/${id}`, request, options);
-  },
-
-  /**
-   * Approves a knowledge source for use in the engineering knowledge hub.
-   * Endpoint: POST /api/sources/{id}/approve
-   */
-  approveSource(id: SourceId, options?: RequestOptions): Promise<KnowledgeSourceDto> {
-    return apiClient.post<KnowledgeSourceDto>(`/api/sources/${id}/approve`, undefined, options);
-  },
-
-  /**
-   * Revokes approval of an approved knowledge source.
-   * Endpoint: POST /api/sources/{id}/revoke-approval
-   */
-  revokeSourceApproval(id: SourceId, options?: RequestOptions): Promise<KnowledgeSourceDto> {
-    return apiClient.post<KnowledgeSourceDto>(
-      `/api/sources/${id}/revoke-approval`,
-      undefined,
-      options
-    );
-  },
-
-  /**
-   * Updates the organizational trust level of a knowledge source.
-   * Endpoint: PUT /api/sources/{id}/trust-level
-   */
-  updateTrustLevel(
-    id: SourceId,
-    request: UpdateTrustLevelRequest,
-    options?: RequestOptions
-  ): Promise<KnowledgeSourceDto> {
-    return apiClient.put<KnowledgeSourceDto>(`/api/sources/${id}/trust-level`, request, options);
-  },
 };
+

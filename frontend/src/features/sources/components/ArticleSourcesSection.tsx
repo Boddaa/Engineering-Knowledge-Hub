@@ -146,7 +146,7 @@ export const ArticleSourcesSection: React.FC<ArticleSourcesSectionProps> = ({
             className={styles.retryBtn}
             onClick={refetch}
           >
-            <RefreshCw size={12} style={{ display: 'inline', marginRight: 4 }} />
+            <RefreshCw size={12} className={styles.retryIcon} />
             Retry
           </button>
         </div>
@@ -155,7 +155,7 @@ export const ArticleSourcesSection: React.FC<ArticleSourcesSectionProps> = ({
       {isLoading && (
         <div className={styles.emptyState} aria-busy="true">
           <Spinner size="md" />
-          <span style={{ fontSize: '13px', marginTop: 8 }}>
+          <span className={styles.loadingText}>
             Loading attached knowledge sources...
           </span>
         </div>
@@ -163,7 +163,7 @@ export const ArticleSourcesSection: React.FC<ArticleSourcesSectionProps> = ({
 
       {!isLoading && sources.length === 0 && !error && (
         <div className={styles.emptyState}>
-          <Info size={24} style={{ color: 'var(--color-text-muted)' }} />
+          <Info size={24} className={styles.emptyIcon} />
           <span className={styles.emptyTitle}>No Attached Sources</span>
           <p className={styles.emptyDescription}>
             This article does not currently link to supporting architecture docs, external RFCs,

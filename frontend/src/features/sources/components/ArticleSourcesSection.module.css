@@ -215,3 +215,17 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+.retryIcon {
+  display: inline;
+  margin-right: 4px;
+}
+
+.loadingText {
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.emptyIcon {
+  color: var(--color-text-muted);
+}

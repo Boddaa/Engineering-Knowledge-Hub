@@ -71,7 +71,7 @@ export const AttachSourceModal: React.FC<AttachSourceModalProps> = ({
         <div className={styles.header}>
           <div>
             <h2 id="attach-source-title" className={styles.headerTitle}>
-              <BookOpen size={16} style={{ display: 'inline', marginRight: 6, verticalAlign: 'text-bottom' }} />
+              <BookOpen size={16} className={styles.headerIcon} />
               Attach Knowledge Source
             </h2>
             <p className={styles.headerSubtitle}>

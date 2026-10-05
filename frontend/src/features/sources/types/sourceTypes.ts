@@ -74,32 +74,3 @@ export interface AttachSourceRequest {
   referenceText?: string | null;
 }
 
-/**
- * HTTP request contract for registering a new knowledge source.
- * Endpoint: POST /api/sources
- */
-export interface CreateKnowledgeSourceRequest {
-  name: string;
-  sourceType: SourceType | number;
-  url?: string | null;
-  description?: string | null;
-  trustLevel?: TrustLevel | number;
-}
-
-/**
- * HTTP request contract for updating an existing knowledge source.
- * Endpoint: PUT /api/sources/{id}
- */
-export interface UpdateKnowledgeSourceRequest {
-  name: string;
-  url?: string | null;
-  description?: string | null;
-}
-
-/**
- * HTTP request contract for updating the trust level of a knowledge source.
- * Endpoint: PUT /api/sources/{id}/trust-level
- */
-export interface UpdateTrustLevelRequest {
-  trustLevel: TrustLevel | number;
-}
