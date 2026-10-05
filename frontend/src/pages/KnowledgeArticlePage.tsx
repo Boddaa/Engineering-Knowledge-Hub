@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -20,6 +20,14 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import {
   useKnowledgeArticle,
+  useKnowledgeVersions,
+  useKnowledgeAudit,
+  useKnowledgeGovernance,
+  GovernanceActionBar,
+  GovernanceConfirmModal,
+  KnowledgeVersionsList,
+  KnowledgeAuditTrail,
+  type GovernanceActionType,
   normalizeKnowledgeStatus,
   normalizeVerificationStatus,
   getStatusBadgeVariant,
@@ -33,6 +41,87 @@ export const KnowledgeArticlePage: React.FC = () => {
   const navigate = useNavigate();
 
   const { article, isLoading, error, isNotFound, retry } = useKnowledgeArticle(id);
+
+  const {
+    versions,
+    isLoading: isLoadingVersions,
+    error: versionsError,
+    refetch: refetchVersions,
+  } = useKnowledgeVersions(id);
+
+  const {
+    auditLogs,
+    isLoading: isLoadingAudit,
+    error: auditError,
+    refetch: refetchAudit,
+  } = useKnowledgeAudit(id);
+
+  const {
+    isSubmitting: isGovernanceSubmitting,
+    executingAction,
+    actionError,
+    successFeedback,
+    submitReview,
+    approve,
+    reject,
+    deprecate,
+    archive,
+    clearActionError,
+    clearSuccessFeedback,
+  } = useKnowledgeGovernance();
+
+  const [activeModalAction, setActiveModalAction] = useState<GovernanceActionType | null>(null);
+
+  const handleOpenAction = (action: GovernanceActionType) => {
+    clearActionError();
+    setActiveModalAction(action);
+  };
+
+  const handleCloseModal = () => {
+    if (!isGovernanceSubmitting) {
+      clearActionError();
+      setActiveModalAction(null);
+    }
+  };
+
+  const handleConfirmAction = async (payload: {
+    reviewerId?: string;
+    submitterId?: string;
+    actorId?: string;
+    changeSummary?: string;
+  }) => {
+    if (!article || !activeModalAction) return;
+
+    let success = false;
+    switch (activeModalAction) {
+      case 'submit-review':
+        success = await submitReview(article.id, payload.submitterId);
+        break;
+      case 'approve':
+        if (payload.reviewerId) {
+          success = await approve(article.id, payload.reviewerId, payload.changeSummary);
+        }
+        break;
+      case 'reject':
+        if (payload.reviewerId) {
+          success = await reject(article.id, payload.reviewerId);
+        }
+        break;
+      case 'deprecate':
+        success = await deprecate(article.id, payload.actorId);
+        break;
+      case 'archive':
+        success = await archive(article.id, payload.actorId);
+        break;
+    }
+
+    if (success) {
+      setActiveModalAction(null);
+      retry();
+      refetchVersions();
+      refetchAudit();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -128,6 +217,8 @@ export const KnowledgeArticlePage: React.FC = () => {
             icon={<Edit3 size={15} />}
             onClick={() => navigate(`/knowledge/${article.id}/edit`)}
             aria-label="Edit knowledge article"
+            disabled={normalizedStatus === 'Archived'}
+            title={normalizedStatus === 'Archived' ? 'Archived articles cannot be edited.' : undefined}
           >
             Edit
           </Button>
@@ -135,6 +226,16 @@ export const KnowledgeArticlePage: React.FC = () => {
       }
     >
       <div className={styles.container}>
+        {/* Governance Lifecycle Action Bar */}
+        <GovernanceActionBar
+          status={article.status}
+          verificationStatus={article.verificationStatus}
+          isSubmitting={isGovernanceSubmitting}
+          executingAction={executingAction}
+          onOpenAction={handleOpenAction}
+          successFeedback={successFeedback}
+          onDismissFeedback={clearSuccessFeedback}
+        />
         {/* Metadata Grid */}
         <section className={styles.metaGrid} aria-label="Article metadata">
           <div className={styles.metaItem}>
@@ -269,6 +370,33 @@ export const KnowledgeArticlePage: React.FC = () => {
             )}
           </section>
         )}
+
+        {/* Versions History Section */}
+        <KnowledgeVersionsList
+          versions={versions}
+          isLoading={isLoadingVersions}
+          error={versionsError}
+          onRetry={refetchVersions}
+        />
+
+        {/* Governance Audit Trail Section */}
+        <KnowledgeAuditTrail
+          auditLogs={auditLogs}
+          isLoading={isLoadingAudit}
+          error={auditError}
+          onRetry={refetchAudit}
+        />
+
+        {/* Governance Lifecycle Confirmation Modal */}
+        <GovernanceConfirmModal
+          isOpen={activeModalAction !== null}
+          action={activeModalAction}
+          articleTitle={article.title}
+          isSubmitting={isGovernanceSubmitting}
+          apiError={actionError}
+          onClose={handleCloseModal}
+          onConfirm={handleConfirmAction}
+        />
       </div>
     </PageShell>
   );
