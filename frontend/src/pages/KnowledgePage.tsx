@@ -14,7 +14,7 @@ import {
   KnowledgePagination,
   KnowledgeFilterPanel,
   ActiveFilterChips,
-  type SearchSortOption,
+  normalizeSearchSortOption,
 } from '@/features/knowledge';
 import styles from './KnowledgePage.module.css';
 
@@ -140,7 +140,7 @@ export const KnowledgePage: React.FC = () => {
                 id="knowledge-sort-select"
                 className={styles.sortSelect}
                 value={sortBy}
-                onChange={(e) => changeSortBy(e.target.value as SearchSortOption)}
+                onChange={(e) => changeSortBy(normalizeSearchSortOption(e.target.value))}
                 aria-label="Sort knowledge articles"
               >
                 <option value="Relevance">Relevance</option>

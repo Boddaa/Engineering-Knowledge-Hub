@@ -161,11 +161,14 @@ export function isValidKnowledgeStatus(value: unknown): value is KnowledgeStatus
  */
 export function normalizeFilterStatus(value: string | null | undefined): KnowledgeStatus | undefined {
   if (!value) return undefined;
-  if (isValidKnowledgeStatus(value)) return value;
-  // If numeric string
-  const num = parseInt(value, 10);
-  if (!isNaN(num) && num >= 1 && num <= 6) {
-    return normalizeKnowledgeStatus(num);
+  const trimmed = value.trim();
+  if (isValidKnowledgeStatus(trimmed)) return trimmed;
+  // Strictly validate that trimmed is an exact numeric string
+  if (/^\d+$/.test(trimmed)) {
+    const num = Number(trimmed);
+    if (num >= 1 && num <= 6) {
+      return normalizeKnowledgeStatus(num);
+    }
   }
   return undefined;
 }
@@ -192,10 +195,14 @@ export function isValidVerificationStatus(value: unknown): value is Verification
  */
 export function normalizeFilterVerificationStatus(value: string | null | undefined): VerificationStatus | undefined {
   if (!value) return undefined;
-  if (isValidVerificationStatus(value)) return value;
-  const num = parseInt(value, 10);
-  if (!isNaN(num) && num >= 1 && num <= 3) {
-    return normalizeVerificationStatus(num);
+  const trimmed = value.trim();
+  if (isValidVerificationStatus(trimmed)) return trimmed;
+  // Strictly validate that trimmed is an exact numeric string
+  if (/^\d+$/.test(trimmed)) {
+    const num = Number(trimmed);
+    if (num >= 1 && num <= 3) {
+      return normalizeVerificationStatus(num);
+    }
   }
   return undefined;
 }
@@ -224,20 +231,24 @@ export function normalizeFilterUuid(value: string | null | undefined): string | 
 
 /**
  * Safely normalizes page number from URL search params.
- * Ensures page is at least 1.
+ * Ensures page is an exact numeric string and at least 1.
  */
 export function normalizePage(value: string | null | undefined): number {
   if (!value) return 1;
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return 1;
+  const num = Number(trimmed);
+  return num >= 1 ? num : 1;
 }
 
 /**
  * Safely normalizes page size from URL search params.
- * Ensures page size is between 1 and 100, defaulting to defaultSize.
+ * Ensures page size is an exact numeric string between 1 and 100, defaulting to defaultSize.
  */
 export function normalizePageSize(value: string | null | undefined, defaultSize = 10): number {
   if (!value) return defaultSize;
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) || parsed < 1 || parsed > 100 ? defaultSize : parsed;
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return defaultSize;
+  const num = Number(trimmed);
+  return num >= 1 && num <= 100 ? num : defaultSize;
 }
