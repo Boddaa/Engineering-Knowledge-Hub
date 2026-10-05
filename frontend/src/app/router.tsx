@@ -11,6 +11,8 @@ import {
   ProjectsPage,
   NotesPage,
   BoardsPage,
+  DocumentsPage,
+  DocumentDetailPage,
   NotFoundPage,
 } from '@/pages';
 
@@ -50,6 +52,14 @@ export const router = createBrowserRouter([
       {
         path: 'incidents/:id',
         element: <IncidentDetailPage />,
+      },
+      {
+        path: 'documents',
+        element: <DocumentsPage />,
+      },
+      {
+        path: 'documents/:id',
+        element: <DocumentDetailPage />,
       },
       {
         path: 'projects',

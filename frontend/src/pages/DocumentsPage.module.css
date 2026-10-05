@@ -1,0 +1,103 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.filterBar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding: var(--space-lg);
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.sourceSelectWrapper {
+  flex: 1;
+  min-width: 280px;
+  max-width: 600px;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .filterBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sourceSelectWrapper {
+    max-width: 100%;
+  }
+
+  .actionButtons {
+    margin-top: 0;
+    justify-content: flex-end;
+  }
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+}
+
+.summaryText {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.summaryHighlight {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.contentCard {
+  background-color: var(--color-surface-base);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.emptyPromptCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
+  background-color: var(--color-surface-subtle);
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  gap: var(--space-sm);
+}
+
+.emptyPromptIcon {
+  color: var(--color-brand-cyan);
+  margin-bottom: var(--space-xs);
+}
+
+.emptyPromptTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.emptyPromptText {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  max-width: 480px;
+  margin: 0;
+  line-height: 1.5;
+}
