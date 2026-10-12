@@ -1,18 +1,16 @@
 /**
  * Strongly-typed domain and DTO contracts for the AI Knowledge Assistant and RAG workspace.
- * Mirrors ASP.NET Core backend models from:
+ * Reconciled against ASP.NET Core backend contracts:
  * - EngineeringKnowledgeHub.Api.Models.RagQueryRequest
  * - EngineeringKnowledgeHub.Application.DTOs.RagResponseDto
  * - EngineeringKnowledgeHub.Application.DTOs.RagEvidenceDto
  * - EngineeringKnowledgeHub.Application.Ai.LocalAiHealthDto
  * - EngineeringKnowledgeHub.Application.Ai.LocalAiHealthStatus
- * - EngineeringKnowledgeHub.Api.Models.AiGenerateRequest
- * - EngineeringKnowledgeHub.Application.Rag.AiResponse
  */
 
 /**
- * Request payload for submitting a natural-language question to the RAG knowledge assistant.
- * Endpoint: POST /api/rag/ask or POST /api/rag/query
+ * Request payload for submitting a question to the RAG knowledge assistant.
+ * Endpoint: POST /api/rag/ask (or POST /api/rag/query)
  */
 export interface RagQueryRequest {
   question: string;
@@ -28,7 +26,7 @@ export interface RagQueryRequest {
 
 /**
  * Individual citation evidence item returned with a RAG response.
- * Traceable back to internal knowledge articles, document chunks, or resolved incidents.
+ * Provides provenance, verification status, and relevant excerpt.
  */
 export interface RagEvidenceDto {
   citationNumber: number;
@@ -44,6 +42,7 @@ export interface RagEvidenceDto {
 
 /**
  * Synthesized response returned from the RAG knowledge assistant.
+ * Note: Contract contains boolean isSufficientEvidence; no numeric confidenceScore is returned by backend.
  */
 export interface RagResponseDto {
   question: string;
@@ -65,8 +64,8 @@ export type LocalAiHealthStatus =
   | 'Misconfigured';
 
 /**
- * Diagnostic payload reporting the operational readiness and model presence of the Local AI subsystem.
- * Endpoint: GET /api/ai/local/health or GET /api/ai/health
+ * Diagnostic payload reporting operational readiness and model presence of the Local AI subsystem.
+ * Endpoint: GET /api/ai/local/health (or GET /api/ai/health)
  */
 export interface LocalAiHealthDto {
   enabled: boolean;
@@ -77,27 +76,6 @@ export interface LocalAiHealthDto {
   embeddingModelAvailable: boolean;
   status: LocalAiHealthStatus;
   diagnosticMessage: string;
-}
-
-/**
- * Request payload for direct AI text generation.
- * Endpoint: POST /api/ai/generate
- */
-export interface AiGenerateRequest {
-  userPrompt: string;
-  systemPrompt?: string | null;
-  temperature?: number | null;
-  maxTokens?: number | null;
-}
-
-/**
- * Direct response from the configured AI provider.
- */
-export interface AiResponse {
-  content: string;
-  modelName: string;
-  promptTokens: number;
-  completionTokens: number;
 }
 
 /**

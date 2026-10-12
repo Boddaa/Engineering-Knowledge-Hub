@@ -1,11 +1,13 @@
 import type {
   LocalAiHealthStatus,
   RagEvidenceDto,
-  RagResponseDto,
 } from '../types/assistantTypes';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
+
 /**
- * Formats a normalized decimal score (0.0 to 1.0) into a clean percentage string.
+ * Formats a normalized decimal relevance score (0.0 to 1.0) into a clean percentage string.
  * Clamps input between 0 and 100 for visual display without mutating the underlying value.
  */
 export function formatScorePercent(score: number): string {
@@ -17,43 +19,31 @@ export function formatScorePercent(score: number): string {
 }
 
 /**
- * Resolves the synthesis confidence metric from a RAG response.
- * Keeps confidenceScore distinct from individual evidence relevance scores.
- * Uses explicit backend confidenceScore if present, or derives an aggregate evidence
- * grounding confidence score while providing clear context that confidence is not a guarantee.
+ * Presentation configuration for the actual backend evidence sufficiency state (IsSufficientEvidence).
+ * Does not fabricate a numeric confidence score.
  */
-export function resolveSynthesisConfidence(response: RagResponseDto): {
-  score: number;
-  formatted: string;
-  disclaimer: string;
-} {
-  // Check if response has an explicit confidenceScore from the backend
-  const explicitScore = (response as unknown as { confidenceScore?: number }).confidenceScore;
+export interface SufficiencyPresentation {
+  label: string;
+  variant: 'success' | 'warning';
+  description: string;
+}
 
-  let finalScore = 0;
-  if (typeof explicitScore === 'number' && !Number.isNaN(explicitScore)) {
-    finalScore = Math.max(0, Math.min(1, explicitScore));
-  } else if (response.evidence && response.evidence.length > 0) {
-    // Derive weighted average of top evidence relevance scores
-    const topScores = response.evidence
-      .map((e) => e.relevanceScore)
-      .filter((s) => typeof s === 'number' && !Number.isNaN(s))
-      .sort((a, b) => b - a)
-      .slice(0, 3);
-
-    if (topScores.length > 0) {
-      const avg = topScores.reduce((acc, curr) => acc + curr, 0) / topScores.length;
-      finalScore = response.isSufficientEvidence ? avg : avg * 0.5;
-    }
-  } else {
-    finalScore = response.isSufficientEvidence ? 0.5 : 0.0;
+/**
+ * Maps the boolean isSufficientEvidence response property into an honest sufficiency status.
+ */
+export function formatSufficiencyStatus(isSufficientEvidence: boolean): SufficiencyPresentation {
+  if (isSufficientEvidence) {
+    return {
+      label: 'Sufficiently Grounded',
+      variant: 'success',
+      description: 'The answer was synthesized with sufficient retrieval evidence context.',
+    };
   }
 
   return {
-    score: finalScore,
-    formatted: formatScorePercent(finalScore),
-    disclaimer:
-      'Confidence indicates retrieval context grounding density, not an absolute guarantee of correctness. Always verify source citations.',
+    label: 'Insufficient Grounding / Tentative',
+    variant: 'warning',
+    description: 'Retrieval context was insufficient to fully ground the response. The answer may rely on fallback heuristics.',
   };
 }
 
@@ -64,6 +54,18 @@ export interface HealthStatusPresentation {
   label: string;
   variant: 'success' | 'warning' | 'error' | 'neutral';
   description: string;
+}
+
+/**
+ * Normalizes raw health status values (whether returned as string or enum integer) to a typed LocalAiHealthStatus.
+ */
+export function normalizeHealthStatus(raw: unknown): LocalAiHealthStatus {
+  if (raw === 0 || raw === '0' || raw === 'Disabled') return 'Disabled';
+  if (raw === 1 || raw === '1' || raw === 'Healthy') return 'Healthy';
+  if (raw === 2 || raw === '2' || raw === 'Unavailable') return 'Unavailable';
+  if (raw === 3 || raw === '3' || raw === 'Misconfigured') return 'Misconfigured';
+  if (raw === 4 || raw === '4' || raw === 'ModelUnavailable') return 'ModelUnavailable';
+  return 'Unavailable';
 }
 
 /**
@@ -113,7 +115,7 @@ export function formatHealthStatus(status: LocalAiHealthStatus): HealthStatusPre
 /**
  * Resolves linking targets and origin metadata for an individual citation evidence item.
  * Links to /knowledge/{articleId}, /documents/{documentId}, or /incidents/{incidentId}
- * ONLY when valid identifiers exist. If missing or undefined, returns linkPath: null.
+ * ONLY when valid non-empty UUID identifiers exist. If missing or empty GUID, returns linkPath: null.
  */
 export function formatEvidenceOrigin(evidence: RagEvidenceDto): {
   linkPath: string | null;
@@ -124,8 +126,9 @@ export function formatEvidenceOrigin(evidence: RagEvidenceDto): {
 } {
   const isExternal =
     evidence.metadata?.IsExternal === 'true' ||
-    evidence.sourceType.toLowerCase().includes('external') ||
-    evidence.sourceType.toLowerCase().includes('vendor');
+    evidence.sourceType?.toLowerCase().includes('external') ||
+    evidence.sourceType?.toLowerCase().includes('vendor') ||
+    false;
 
   const provenanceName =
     evidence.metadata?.SourceName ||
@@ -139,21 +142,23 @@ export function formatEvidenceOrigin(evidence: RagEvidenceDto): {
 
   const refId = evidence.referenceId;
 
-  if (refId && typeof refId === 'string' && refId.trim()) {
-    const cleanId = refId.trim();
+  if (refId && typeof refId === 'string') {
+    const trimmed = refId.trim();
 
-    if (evidence.sourceType === 'KnowledgeArticle') {
-      linkPath = `/knowledge/${cleanId}`;
-      linkLabel = 'View Knowledge Article';
-      originType = 'Knowledge Article';
-    } else if (evidence.sourceType === 'DocumentChunk') {
-      linkPath = `/documents/${cleanId}`;
-      linkLabel = 'View Source Document';
-      originType = 'Document Chunk';
-    } else if (evidence.sourceType === 'Incident') {
-      linkPath = `/incidents/${cleanId}`;
-      linkLabel = 'View Related Incident';
-      originType = 'Incident Postmortem';
+    if (UUID_REGEX.test(trimmed) && trimmed !== EMPTY_GUID) {
+      if (evidence.sourceType === 'KnowledgeArticle') {
+        linkPath = `/knowledge/${trimmed}`;
+        linkLabel = 'View Knowledge Article';
+        originType = 'Knowledge Article';
+      } else if (evidence.sourceType === 'DocumentChunk') {
+        linkPath = `/documents/${trimmed}`;
+        linkLabel = 'View Source Document';
+        originType = 'Document Chunk';
+      } else if (evidence.sourceType === 'Incident') {
+        linkPath = `/incidents/${trimmed}`;
+        linkLabel = 'View Related Incident';
+        originType = 'Incident Postmortem';
+      }
     }
   }
 

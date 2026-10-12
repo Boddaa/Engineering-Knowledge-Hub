@@ -6,7 +6,7 @@ import {
   Cpu,
   BookOpen,
 } from 'lucide-react';
-import { resolveSynthesisConfidence, formatIsoTime } from '../utils/assistantFormatters';
+import { formatSufficiencyStatus, formatIsoTime } from '../utils/assistantFormatters';
 import { EvidenceCard } from './EvidenceCard';
 import type { RagResponseDto } from '../types/assistantTypes';
 import styles from './RagAnswerDisplay.module.css';
@@ -20,7 +20,7 @@ export const RagAnswerDisplay: React.FC<RagAnswerDisplayProps> = ({
   response,
   activeQuestion,
 }) => {
-  const confidence = resolveSynthesisConfidence(response);
+  const sufficiency = formatSufficiencyStatus(response.isSufficientEvidence);
   const displayQuestion = activeQuestion || response.question;
 
   // Split answer content by markdown code fences to render code blocks cleanly
@@ -72,9 +72,16 @@ export const RagAnswerDisplay: React.FC<RagAnswerDisplayProps> = ({
       </div>
 
       <div className={styles.metricsBar}>
-        <div className={styles.metricItem}>
-          <span className={styles.metricLabel}>Grounding Confidence:</span>
-          <span className={styles.metricValue}>{confidence.formatted}</span>
+        <div>
+          {response.isSufficientEvidence ? (
+            <span className={styles.groundedBadgeSuccess} title={sufficiency.description}>
+              <ShieldCheck size={12} /> {sufficiency.label}
+            </span>
+          ) : (
+            <span className={styles.groundedBadgeWarning} title={sufficiency.description}>
+              <AlertTriangle size={12} /> {sufficiency.label}
+            </span>
+          )}
         </div>
 
         <div className={styles.metricItem}>
@@ -84,26 +91,19 @@ export const RagAnswerDisplay: React.FC<RagAnswerDisplayProps> = ({
           </span>
         </div>
 
-        <div>
-          {response.isSufficientEvidence ? (
-            <span className={styles.groundedBadgeSuccess}>
-              <ShieldCheck size={12} /> Sufficiently Grounded
-            </span>
-          ) : (
-            <span className={styles.groundedBadgeWarning}>
-              <AlertTriangle size={12} /> Tentative / Low Evidence
-            </span>
-          )}
+        <div className={styles.metricItem}>
+          <span className={styles.metricLabel}>Citations:</span>
+          <span className={styles.metricValue}>
+            {response.evidence.length}
+          </span>
         </div>
       </div>
-
-      <p className={styles.confidenceDisclaimer}>{confidence.disclaimer}</p>
 
       {!response.isSufficientEvidence && (
         <div className={styles.warningBanner} role="note">
           <AlertTriangle size={16} />
           <span>
-            Retrieval evidence fell below the sufficiency threshold. The synthesized response may rely on fallback heuristic guidance. Verify against source citations below.
+            {sufficiency.description}
           </span>
         </div>
       )}
