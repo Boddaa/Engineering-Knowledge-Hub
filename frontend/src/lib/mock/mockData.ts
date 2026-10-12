@@ -27,6 +27,7 @@ export const mockNavigationItems: NavItem[] = [
   { id: 'knowledge', label: 'Knowledge', path: '/knowledge', icon: 'BookOpen', badge: 142 },
   { id: 'incidents', label: 'Incidents', path: '/incidents', icon: 'AlertTriangle' },
   { id: 'documents', label: 'Documents', path: '/documents', icon: 'Files' },
+  { id: 'assistant', label: 'AI Assistant', path: '/assistant', icon: 'Bot' },
   { id: 'projects', label: 'Projects', path: '/projects', icon: 'FolderKanban', badge: 8 },
   { id: 'notes', label: 'Notes', path: '/notes', icon: 'FileText', badge: 24 },
   { id: 'boards', label: 'Boards', path: '/boards', icon: 'LayoutGrid' },

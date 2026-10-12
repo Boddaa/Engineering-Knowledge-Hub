@@ -13,6 +13,7 @@ import {
   BoardsPage,
   DocumentsPage,
   DocumentDetailPage,
+  AssistantPage,
   NotFoundPage,
 } from '@/pages';
 
@@ -60,6 +61,10 @@ export const router = createBrowserRouter([
       {
         path: 'documents/:id',
         element: <DocumentDetailPage />,
+      },
+      {
+        path: 'assistant',
+        element: <AssistantPage />,
       },
       {
         path: 'projects',

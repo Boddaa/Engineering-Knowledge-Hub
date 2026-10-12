@@ -1,0 +1,150 @@
+.card {
+  background: var(--color-surface-floating);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.card:hover {
+  border-color: var(--color-border-default);
+  background: var(--color-surface-overlay);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.citationMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.citationBadge {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-accent-secondary);
+  background: rgba(139, 124, 255, 0.15);
+  border: 1px solid rgba(139, 124, 255, 0.3);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.typeBadge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-subtle);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+}
+
+.externalBadge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-status-warning);
+  background: rgba(255, 184, 108, 0.15);
+  border: 1px solid rgba(255, 184, 108, 0.3);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.verifiedBadge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-status-success);
+  background: rgba(69, 224, 168, 0.15);
+  border: 1px solid rgba(69, 224, 168, 0.3);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.scorePill {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent-primary);
+  background: rgba(92, 225, 230, 0.1);
+  border: 1px solid rgba(92, 225, 230, 0.25);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+.excerpt {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+  margin: 0;
+  font-family: var(--font-family-sans);
+  background: var(--color-surface-base);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.provenance {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-accent-primary);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(92, 225, 230, 0.08);
+  border: 1px solid rgba(92, 225, 230, 0.2);
+  transition: all var(--transition-fast);
+}
+
+.linkButton:hover {
+  background: rgba(92, 225, 230, 0.18);
+  border-color: var(--color-accent-primary);
+}
+
+.noLinkNote {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}

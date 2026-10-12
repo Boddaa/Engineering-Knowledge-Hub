@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   AlertTriangle,
   Files,
+  Bot,
   Plus,
   Folder,
   Network,
@@ -49,6 +50,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <LayoutGrid size={18} />;
       case 'Files':
         return <Files size={18} />;
+      case 'Bot':
+        return <Bot size={18} />;
       default:
         return <BookOpen size={18} />;
     }
