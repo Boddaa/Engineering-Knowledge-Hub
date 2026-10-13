@@ -15,14 +15,24 @@ export class ApiError extends Error {
   public readonly title?: string;
   public readonly detail?: string;
   public readonly problemDetails?: ProblemDetails;
+  public readonly isAborted: boolean;
+  public readonly isTimeout: boolean;
 
-  constructor(status: number, message: string, problemDetails?: ProblemDetails) {
+  constructor(
+    status: number,
+    message: string,
+    problemDetails?: ProblemDetails,
+    isAborted: boolean = false,
+    isTimeout: boolean = false
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.title = problemDetails?.title;
     this.detail = problemDetails?.detail || message;
     this.problemDetails = problemDetails;
+    this.isAborted = isAborted;
+    this.isTimeout = isTimeout;
   }
 
   public get isNotFound(): boolean {

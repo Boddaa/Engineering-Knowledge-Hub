@@ -11,6 +11,8 @@ export { auditApi } from './api/auditApi';
 
 // Utils
 export {
+  EMPTY_GUID,
+  isEmptyGuid,
   isValidGuid,
   formatAuditDate,
   getActionBadgeVariant,

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ApiError } from '@/services/api/apiErrors';
 import { auditApi } from '../api/auditApi';
 import type {
   AuditLogDto,
   AuditFilterState,
   AuditPaginationState,
 } from '../types/auditTypes';
-import { isValidGuid } from '../utils/auditFormatters';
+import { isValidGuid, isEmptyGuid } from '../utils/auditFormatters';
 
 export interface UseAuditLogsResult {
   /** The paginated slice of logs currently displayed */
@@ -54,8 +55,10 @@ export function useAuditLogs(): UseAuditLogsResult {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Keep track of in-flight abort controller
+  // Keep track of in-flight abort controller and request sequencing to prevent race conditions
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
 
   // Reset page to 1 when search or filter values change
   const prevFilterSignatureRef = useRef<string>('');
@@ -76,6 +79,7 @@ export function useAuditLogs(): UseAuditLogsResult {
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    const currentRequestId = ++requestIdRef.current;
 
     // Validate inputs based on mode
     if (filters.mode === 'entity') {
@@ -96,6 +100,13 @@ export function useAuditLogs(): UseAuditLogsResult {
         return;
       }
 
+      if (isEmptyGuid(trimmedEntityId)) {
+        setError('Entity ID cannot be empty (00000000-0000-0000-0000-000000000000). Please provide a valid entity identifier.');
+        setRawLogs([]);
+        setIsLoading(false);
+        return;
+      }
+
       if (!isValidGuid(trimmedEntityId)) {
         setError('Invalid Entity ID format. Entity ID must be a valid UUID (e.g. 12345678-1234-1234-1234-123456789abc).');
         setRawLogs([]);
@@ -109,6 +120,13 @@ export function useAuditLogs(): UseAuditLogsResult {
 
       if (!trimmedUserId) {
         setError('Please enter a User ID (UUID) to filter by user.');
+        setRawLogs([]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (isEmptyGuid(trimmedUserId)) {
+        setError('User ID cannot be empty (00000000-0000-0000-0000-000000000000). Please provide a valid user identifier.');
         setRawLogs([]);
         setIsLoading(false);
         return;
@@ -142,30 +160,53 @@ export function useAuditLogs(): UseAuditLogsResult {
         });
       }
 
+      // Guard: Discard stale results if a newer request was dispatched or component unmounted
+      if (!isMountedRef.current || requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
       setRawLogs(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        // Request was aborted due to new filter; ignore
+      // Guard: Discard error if a newer request was dispatched or component unmounted
+      if (!isMountedRef.current || requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
+      // Distinguish user cancellation from genuine timeout / network errors
+      const isAbort =
+        (err instanceof ApiError && err.isAborted) ||
+        (err instanceof DOMException && err.name === 'AbortError') ||
+        (err instanceof Error && err.name === 'AbortError');
+
+      if (isAbort) {
+        // User-triggered cancellation: discard silently without overwriting newer state
         return;
       }
 
       const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Failed to retrieve governance audit logs from server.';
+        err instanceof ApiError
+          ? err.detail || err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to retrieve governance audit logs from server.';
       setError(errorMessage);
       setRawLogs([]);
     } finally {
-      setIsLoading(false);
+      // Guard: Only the active/latest request is permitted to toggle loading state
+      if (isMountedRef.current && requestIdRef.current === currentRequestId) {
+        setIsLoading(false);
+      }
     }
   }, [filters.mode, filters.entityName, filters.entityId, filters.userId]);
 
-  // Trigger fetch when query parameters change
+  // Trigger fetch when query parameters change, with safe unmount cleanup
   useEffect(() => {
+    isMountedRef.current = true;
     fetchLogs();
 
     return () => {
+      isMountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

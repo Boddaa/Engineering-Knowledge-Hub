@@ -1,13 +1,29 @@
 import type { BadgeVariant } from '@/components/ui/Badge';
 
 /**
- * Validates whether a given string is a valid UUID/GUID format.
+ * Standard representation of an empty GUID (Guid.Empty).
+ */
+export const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
+
+/**
+ * Determines whether a given string is Guid.Empty.
+ */
+export function isEmptyGuid(value: string): boolean {
+  if (!value || typeof value !== 'string') return false;
+  return value.trim().toLowerCase() === EMPTY_GUID;
+}
+
+/**
+ * Validates whether a given string is a valid non-empty UUID/GUID format.
+ * Rejects empty string, invalid format, and Guid.Empty (00000000-0000-0000-0000-000000000000).
  */
 export function isValidGuid(value: string): boolean {
   if (!value || typeof value !== 'string') return false;
   const trimmed = value.trim();
   const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return guidRegex.test(trimmed);
+  if (!guidRegex.test(trimmed)) return false;
+  if (trimmed.toLowerCase() === EMPTY_GUID) return false;
+  return true;
 }
 
 /**

@@ -48,12 +48,16 @@ class ApiClient {
     const { timeoutMs = API_CONFIG.timeoutMs, params, ...fetchOptions } = options;
     const url = this.buildUrl(path, params);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutController = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, timeoutMs);
 
     const mergedSignal = fetchOptions.signal
-      ? anySignal([fetchOptions.signal, controller.signal])
-      : controller.signal;
+      ? anySignal([fetchOptions.signal, timeoutController.signal])
+      : timeoutController.signal;
 
     try {
       const response = await fetch(url, {
@@ -94,8 +98,16 @@ class ApiClient {
         throw err;
       }
 
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        throw new ApiError(408, 'Request timed out or was aborted.');
+      const isAbort =
+        (err instanceof DOMException && err.name === 'AbortError') ||
+        (err instanceof Error && err.name === 'AbortError');
+
+      if (isAbort) {
+        if (didTimeout) {
+          throw new ApiError(408, 'Request timed out.', undefined, false, true);
+        }
+        // User/caller aborted via signal
+        throw new ApiError(408, 'Request was aborted.', undefined, true, false);
       }
 
       const message = err instanceof Error ? err.message : 'Network error occurred.';

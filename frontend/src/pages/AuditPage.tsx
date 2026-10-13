@@ -50,10 +50,31 @@ export const AuditPage: React.FC = () => {
     return 'All Records';
   };
 
+  const getObservabilityStatus = () => {
+    if (isLoading) {
+      return {
+        label: 'Querying...',
+        color: 'var(--color-text-secondary)',
+      };
+    }
+    if (error) {
+      return {
+        label: 'Unavailable / Error',
+        color: 'var(--color-error)',
+      };
+    }
+    return {
+      label: 'Connected & Streamed',
+      color: 'var(--color-success)',
+    };
+  };
+
+  const statusInfo = getObservabilityStatus();
+
   return (
     <PageShell
       title="System Governance & Audit Logs"
-      description="Immutable compliance audit trail, entity lifecycle transitions, and user observability."
+      description="System compliance audit trail, entity lifecycle transitions, and user observability."
       headerActions={
         <Button
           variant="subtle"
@@ -73,9 +94,9 @@ export const AuditPage: React.FC = () => {
             <Shield size={20} />
           </div>
           <div className={styles.statContent}>
-            <span className={styles.statLabel}>Compliance Status</span>
-            <span className={styles.statValue} style={{ color: 'var(--color-success)', fontSize: '15px' }}>
-              Active &amp; Immutable
+            <span className={styles.statLabel}>Audit Stream Status</span>
+            <span className={styles.statValue} style={{ color: statusInfo.color, fontSize: '15px' }}>
+              {statusInfo.label}
             </span>
           </div>
         </div>

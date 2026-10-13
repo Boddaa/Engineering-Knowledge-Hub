@@ -152,7 +152,7 @@ export const AuditDetailModal: React.FC<AuditDetailModalProps> = ({
         <div className={styles.footer}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
             <ShieldCheck size={14} style={{ color: 'var(--color-brand-cyan)' }} />
-            <span>Immutable System Audit Trail</span>
+            <span>System Governance Audit Record</span>
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
