@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Files,
   Bot,
+  ScrollText,
   Plus,
   Folder,
   Network,
@@ -52,6 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Files size={18} />;
       case 'Bot':
         return <Bot size={18} />;
+      case 'ScrollText':
+        return <ScrollText size={18} />;
       default:
         return <BookOpen size={18} />;
     }

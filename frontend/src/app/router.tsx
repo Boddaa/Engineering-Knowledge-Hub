@@ -14,6 +14,7 @@ import {
   DocumentsPage,
   DocumentDetailPage,
   AssistantPage,
+  AuditPage,
   NotFoundPage,
 } from '@/pages';
 
@@ -65,6 +66,10 @@ export const router = createBrowserRouter([
       {
         path: 'assistant',
         element: <AssistantPage />,
+      },
+      {
+        path: 'audit',
+        element: <AuditPage />,
       },
       {
         path: 'projects',

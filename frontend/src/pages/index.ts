@@ -11,4 +11,5 @@ export * from './BoardsPage';
 export * from './DocumentsPage';
 export * from './DocumentDetailPage';
 export * from './AssistantPage';
+export * from './AuditPage';
 export * from './NotFoundPage';
