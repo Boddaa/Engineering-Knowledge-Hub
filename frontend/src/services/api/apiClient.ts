@@ -48,6 +48,11 @@ class ApiClient {
     const { timeoutMs = API_CONFIG.timeoutMs, params, ...fetchOptions } = options;
     const url = this.buildUrl(path, params);
 
+    // Pre-flight check: if caller's signal is already aborted, fail immediately without network dispatch
+    if (fetchOptions.signal?.aborted) {
+      throw new ApiError(408, 'Request was aborted.', undefined, true, false);
+    }
+
     const timeoutController = new AbortController();
     let didTimeout = false;
     const timeoutId = setTimeout(() => {
@@ -55,21 +60,35 @@ class ApiClient {
       timeoutController.abort();
     }, timeoutMs);
 
-    const mergedSignal = fetchOptions.signal
-      ? anySignal([fetchOptions.signal, timeoutController.signal])
-      : timeoutController.signal;
+    // Merge caller signal and internal timeout controller with explicit lifecycle cleanup
+    const mergedController = new AbortController();
+    const onCallerAbort = () => mergedController.abort();
+    const onTimeoutAbort = () => mergedController.abort();
+
+    if (fetchOptions.signal) {
+      fetchOptions.signal.addEventListener('abort', onCallerAbort, { once: true });
+    }
+    timeoutController.signal.addEventListener('abort', onTimeoutAbort, { once: true });
+
+    const cleanupSignals = () => {
+      clearTimeout(timeoutId);
+      if (fetchOptions.signal) {
+        fetchOptions.signal.removeEventListener('abort', onCallerAbort);
+      }
+      timeoutController.signal.removeEventListener('abort', onTimeoutAbort);
+    };
 
     try {
       const response = await fetch(url, {
         ...fetchOptions,
-        signal: mergedSignal,
+        signal: mergedController.signal,
         headers: {
           ...API_CONFIG.defaultHeaders,
           ...fetchOptions.headers,
         },
       });
 
-      clearTimeout(timeoutId);
+      cleanupSignals();
 
       if (!response.ok) {
         let problemDetails: ProblemDetails | undefined;
@@ -92,7 +111,7 @@ class ApiClient {
 
       return (await response.json()) as T;
     } catch (err: unknown) {
-      clearTimeout(timeoutId);
+      cleanupSignals();
 
       if (err instanceof ApiError) {
         throw err;
@@ -138,21 +157,6 @@ class ApiClient {
   public delete<T>(path: string, options?: RequestOptions): Promise<T> {
     return this.request<T>(path, { ...options, method: 'DELETE' });
   }
-}
-
-/**
- * Combines multiple abort signals into one.
- */
-function anySignal(signals: AbortSignal[]): AbortSignal {
-  const controller = new AbortController();
-  for (const signal of signals) {
-    if (signal.aborted) {
-      controller.abort();
-      return signal;
-    }
-    signal.addEventListener('abort', () => controller.abort(), { once: true });
-  }
-  return controller.signal;
 }
 
 export const apiClient = new ApiClient();

@@ -26,6 +26,7 @@ try
     // Register API components
     builder.Services.AddErrorHandling();
     builder.Services.AddApiHealthChecks();
+    builder.Services.AddSecurityServices(builder.Configuration);
     builder.Services.AddSwaggerDocumentation();
     builder.Services.AddControllers();
 
@@ -44,6 +45,9 @@ try
     }
 
     app.UseHttpsRedirection();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.MapHealthChecks("/health");
     app.MapControllers();

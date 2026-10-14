@@ -1,15 +1,21 @@
 namespace EngineeringKnowledgeHub.Api.Controllers;
 
+using EngineeringKnowledgeHub.Api.Security;
 using EngineeringKnowledgeHub.Application.DTOs;
 using EngineeringKnowledgeHub.Application.Governance;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
 /// Endpoints for inspecting system-wide governance audit logs.
+/// Protected by AuditGovernancePolicy: requires authenticated user with Admin or Auditor role.
 /// </summary>
 [ApiController]
 [Route("api/audit")]
+[Authorize(Policy = GovernanceAuthenticationDefaults.AuditGovernancePolicy)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
 public sealed class AuditController(IKnowledgeGovernanceService governanceService) : ControllerBase
 {
     private readonly IKnowledgeGovernanceService _governanceService = governanceService ?? throw new ArgumentNullException(nameof(governanceService));

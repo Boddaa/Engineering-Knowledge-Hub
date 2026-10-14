@@ -23,7 +23,7 @@ export {
 
 // Hooks
 export { useAuditLogs } from './hooks/useAuditLogs';
-export type { UseAuditLogsResult } from './hooks/useAuditLogs';
+export type { UseAuditLogsResult, AuditQueryStatus } from './hooks/useAuditLogs';
 
 // Components
 export { AuditFilterBar } from './components/AuditFilterBar';

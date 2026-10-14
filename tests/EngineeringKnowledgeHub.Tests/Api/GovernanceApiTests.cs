@@ -17,6 +17,8 @@ public class GovernanceApiTests : IClassFixture<CustomWebApplicationFactory>
     {
         _factory = factory;
         _client = factory.CreateClient();
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "dev-auditor-token");
     }
 
     [Fact]

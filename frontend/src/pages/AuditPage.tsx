@@ -21,6 +21,7 @@ export const AuditPage: React.FC = () => {
     totalPages,
     isLoading,
     error,
+    queryStatus,
     filters,
     setFilters,
     setPage,
@@ -51,22 +52,28 @@ export const AuditPage: React.FC = () => {
   };
 
   const getObservabilityStatus = () => {
-    if (isLoading) {
-      return {
-        label: 'Querying...',
-        color: 'var(--color-text-secondary)',
-      };
+    switch (queryStatus) {
+      case 'idle':
+        return {
+          label: 'Not queried yet',
+          color: 'var(--color-text-secondary)',
+        };
+      case 'loading':
+        return {
+          label: 'Querying...',
+          color: 'var(--color-text-secondary)',
+        };
+      case 'success':
+        return {
+          label: 'Query successful',
+          color: 'var(--color-success)',
+        };
+      case 'error':
+        return {
+          label: 'Unavailable / Error',
+          color: 'var(--color-error)',
+        };
     }
-    if (error) {
-      return {
-        label: 'Unavailable / Error',
-        color: 'var(--color-error)',
-      };
-    }
-    return {
-      label: 'Connected & Streamed',
-      color: 'var(--color-success)',
-    };
   };
 
   const statusInfo = getObservabilityStatus();
@@ -94,7 +101,7 @@ export const AuditPage: React.FC = () => {
             <Shield size={20} />
           </div>
           <div className={styles.statContent}>
-            <span className={styles.statLabel}>Audit Stream Status</span>
+            <span className={styles.statLabel}>Audit Query Status</span>
             <span className={styles.statValue} style={{ color: statusInfo.color, fontSize: '15px' }}>
               {statusInfo.label}
             </span>

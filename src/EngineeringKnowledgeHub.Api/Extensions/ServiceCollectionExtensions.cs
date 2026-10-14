@@ -1,10 +1,45 @@
 namespace EngineeringKnowledgeHub.Api.Extensions;
 
 using EngineeringKnowledgeHub.Api.Common;
+using EngineeringKnowledgeHub.Api.Security;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
 
 public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection AddSecurityServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<GovernanceAuthenticationOptions>(
+            configuration.GetSection(GovernanceAuthenticationOptions.SectionName));
+        services.Configure<GovernanceAuthenticationOptions>(
+            GovernanceAuthenticationDefaults.AuthenticationScheme,
+            configuration.GetSection(GovernanceAuthenticationOptions.SectionName));
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = GovernanceAuthenticationDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = GovernanceAuthenticationDefaults.AuthenticationScheme;
+        })
+        .AddScheme<GovernanceAuthenticationOptions, GovernanceAuthenticationHandler>(
+            GovernanceAuthenticationDefaults.AuthenticationScheme,
+            options =>
+            {
+                configuration.GetSection(GovernanceAuthenticationOptions.SectionName).Bind(options);
+            });
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(GovernanceAuthenticationDefaults.AuditGovernancePolicy, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireRole("Admin", "Auditor");
+            });
+        });
+
+        return services;
+    }
+
     public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
