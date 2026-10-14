@@ -6,6 +6,14 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class TechnologyRepository(AppDbContext dbContext) : ITechnologyRepository
 {
+    public async Task<IReadOnlyList<Technology>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Technologies
+            .AsNoTracking()
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Technology?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await dbContext.Technologies

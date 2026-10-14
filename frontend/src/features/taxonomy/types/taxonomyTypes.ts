@@ -40,3 +40,38 @@ export interface KnowledgeTagDto {
   id: string;
   name: string;
 }
+
+export interface TaxonomySeedResultDto {
+  typesAdded: number;
+  categoriesAdded: number;
+  productsAdded: number;
+  technologiesAdded: number;
+  tagsAdded: number;
+}
+
+export interface CreateProductRequest {
+  name: string;
+  code: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface CreateTechnologyRequest {
+  name: string;
+  description?: string;
+}
+
+export interface CreateCategoryRequest {
+  name: string;
+  description?: string;
+  parentCategoryId?: string | null;
+}
+
+export interface CreateKnowledgeTypeRequest {
+  name: string;
+  description?: string;
+}
+
+export interface CreateKnowledgeTagRequest {
+  name: string;
+}

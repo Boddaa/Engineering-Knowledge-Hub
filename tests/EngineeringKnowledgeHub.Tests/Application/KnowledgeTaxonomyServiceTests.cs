@@ -10,11 +10,13 @@ public class KnowledgeTaxonomyServiceTests
     private readonly InMemoryKnowledgeCategoryRepository _categoryRepo = new();
     private readonly InMemoryKnowledgeTypeRepository _typeRepo = new();
     private readonly InMemoryKnowledgeTagRepository _tagRepo = new();
+    private readonly InMemoryProductRepository _productRepo = new();
+    private readonly InMemoryTechnologyRepository _techRepo = new();
     private readonly KnowledgeTaxonomyService _service;
 
     public KnowledgeTaxonomyServiceTests()
     {
-        _service = new KnowledgeTaxonomyService(_categoryRepo, _typeRepo, _tagRepo);
+        _service = new KnowledgeTaxonomyService(_categoryRepo, _typeRepo, _tagRepo, _productRepo, _techRepo);
     }
 
     [Fact]

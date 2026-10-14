@@ -58,4 +58,10 @@ public sealed class TechnologyService(ITechnologyRepository technologyRepository
 
         return TechnologyDto.FromDomain(technology);
     }
+
+    public async Task<IReadOnlyList<TechnologyDto>> GetTechnologiesAsync(CancellationToken cancellationToken = default)
+    {
+        var technologies = await technologyRepository.GetAllAsync(cancellationToken);
+        return technologies.Select(TechnologyDto.FromDomain).ToList();
+    }
 }

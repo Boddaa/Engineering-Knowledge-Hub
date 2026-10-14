@@ -30,6 +30,17 @@ public sealed class TechnologiesController(ITechnologyService technologyService)
     }
 
     /// <summary>
+    /// Retrieves all technologies.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<TechnologyDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTechnologies(CancellationToken cancellationToken = default)
+    {
+        var technologies = await _technologyService.GetTechnologiesAsync(cancellationToken);
+        return Ok(technologies);
+    }
+
+    /// <summary>
     /// Retrieves a technology by its unique identifier.
     /// </summary>
     [HttpGet("{id:guid}")]

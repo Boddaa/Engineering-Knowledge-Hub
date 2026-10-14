@@ -33,6 +33,18 @@ public sealed class KnowledgeTaxonomyController(IKnowledgeTaxonomyService taxono
     }
 
     /// <summary>
+    /// Retrieves all knowledge categories.
+    /// </summary>
+    [HttpGet("categories")]
+    [HttpGet("/api/categories")]
+    [ProducesResponseType<IReadOnlyList<KnowledgeCategoryDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCategories(CancellationToken cancellationToken = default)
+    {
+        var categories = await _taxonomyService.GetCategoriesAsync(cancellationToken);
+        return Ok(categories);
+    }
+
+    /// <summary>
     /// Retrieves a knowledge category by its unique identifier.
     /// </summary>
     [HttpGet("categories/{id:guid}")]
@@ -88,6 +100,17 @@ public sealed class KnowledgeTaxonomyController(IKnowledgeTaxonomyService taxono
     {
         var result = await _taxonomyService.CreateTypeAsync(request.ToCommand(), cancellationToken);
         return CreatedAtAction(nameof(GetTypeById), new { id = result.Id }, result);
+    }
+
+    /// <summary>
+    /// Retrieves all knowledge types.
+    /// </summary>
+    [HttpGet("types")]
+    [ProducesResponseType<IReadOnlyList<KnowledgeTypeDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTypes(CancellationToken cancellationToken = default)
+    {
+        var types = await _taxonomyService.GetTypesAsync(cancellationToken);
+        return Ok(types);
     }
 
     /// <summary>
@@ -149,6 +172,17 @@ public sealed class KnowledgeTaxonomyController(IKnowledgeTaxonomyService taxono
     }
 
     /// <summary>
+    /// Retrieves all knowledge tags.
+    /// </summary>
+    [HttpGet("tags")]
+    [ProducesResponseType<IReadOnlyList<KnowledgeTagDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTags(CancellationToken cancellationToken = default)
+    {
+        var tags = await _taxonomyService.GetTagsAsync(cancellationToken);
+        return Ok(tags);
+    }
+
+    /// <summary>
     /// Retrieves a knowledge tag by its unique identifier.
     /// </summary>
     [HttpGet("tags/{id:guid}")]
@@ -187,6 +221,17 @@ public sealed class KnowledgeTaxonomyController(IKnowledgeTaxonomyService taxono
         }
 
         var result = await _taxonomyService.UpdateTagAsync(request.ToCommand(id), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Seeds essential engineering default taxonomy idempotently.
+    /// </summary>
+    [HttpPost("seed")]
+    [ProducesResponseType<TaxonomySeedResultDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Seed(CancellationToken cancellationToken = default)
+    {
+        var result = await _taxonomyService.SeedDefaultTaxonomyAsync(cancellationToken);
         return Ok(result);
     }
 

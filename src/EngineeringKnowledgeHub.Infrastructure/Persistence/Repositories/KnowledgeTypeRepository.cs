@@ -6,6 +6,14 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class KnowledgeTypeRepository(AppDbContext dbContext) : IKnowledgeTypeRepository
 {
+    public async Task<IReadOnlyList<KnowledgeType>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.KnowledgeTypes
+            .AsNoTracking()
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<KnowledgeType?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await dbContext.KnowledgeTypes

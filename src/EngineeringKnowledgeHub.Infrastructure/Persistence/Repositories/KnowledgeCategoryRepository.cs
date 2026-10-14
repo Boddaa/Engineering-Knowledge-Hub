@@ -6,6 +6,14 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class KnowledgeCategoryRepository(AppDbContext dbContext) : IKnowledgeCategoryRepository
 {
+    public async Task<IReadOnlyList<KnowledgeCategory>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.KnowledgeCategories
+            .AsNoTracking()
+            .OrderBy(c => c.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<KnowledgeCategory?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await dbContext.KnowledgeCategories

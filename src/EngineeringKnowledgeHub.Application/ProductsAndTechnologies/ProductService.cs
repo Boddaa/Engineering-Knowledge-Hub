@@ -113,4 +113,12 @@ public sealed class ProductService(IProductRepository productRepository) : IProd
 
         return ProductDto.FromDomain(product);
     }
+
+    public async Task<IReadOnlyList<ProductDto>> GetProductsAsync(
+        bool? isActive = null,
+        CancellationToken cancellationToken = default)
+    {
+        var products = await productRepository.GetAllAsync(isActive, cancellationToken);
+        return products.Select(ProductDto.FromDomain).ToList();
+    }
 }

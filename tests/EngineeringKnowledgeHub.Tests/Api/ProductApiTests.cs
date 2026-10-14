@@ -199,4 +199,49 @@ public class ProductApiTests : IClassFixture<CustomWebApplicationFactory>
         Assert.NotNull(problem);
         Assert.Equal(400, problem.Status);
     }
+
+    [Fact]
+    public async Task GetProducts_ShouldReturnCollection_AndHonorIsActiveFilter()
+    {
+        var activeCode = $"ACT_{Guid.NewGuid():N}"[..12];
+        var inactiveCode = $"INA_{Guid.NewGuid():N}"[..12];
+
+        var createActive = await _client.PostAsJsonAsync("/api/products", new CreateProductRequest(
+            Name: $"Active Product {Guid.NewGuid():N}",
+            Code: activeCode,
+            IsActive: true));
+        var createdActive = await createActive.Content.ReadFromJsonAsync<ProductDto>();
+        Assert.NotNull(createdActive);
+
+        var createInactive = await _client.PostAsJsonAsync("/api/products", new CreateProductRequest(
+            Name: $"Inactive Product {Guid.NewGuid():N}",
+            Code: inactiveCode,
+            IsActive: false));
+        var createdInactive = await createInactive.Content.ReadFromJsonAsync<ProductDto>();
+        Assert.NotNull(createdInactive);
+
+        // 1. Get all products (unfiltered)
+        var allResponse = await _client.GetAsync("/api/products");
+        Assert.Equal(HttpStatusCode.OK, allResponse.StatusCode);
+        var allProducts = await allResponse.Content.ReadFromJsonAsync<IReadOnlyList<ProductDto>>();
+        Assert.NotNull(allProducts);
+        Assert.Contains(allProducts, p => p.Id == createdActive.Id);
+        Assert.Contains(allProducts, p => p.Id == createdInactive.Id);
+
+        // 2. Get active products only
+        var activeResponse = await _client.GetAsync("/api/products?isActive=true");
+        Assert.Equal(HttpStatusCode.OK, activeResponse.StatusCode);
+        var activeProducts = await activeResponse.Content.ReadFromJsonAsync<IReadOnlyList<ProductDto>>();
+        Assert.NotNull(activeProducts);
+        Assert.Contains(activeProducts, p => p.Id == createdActive.Id);
+        Assert.DoesNotContain(activeProducts, p => p.Id == createdInactive.Id);
+
+        // 3. Get inactive products only
+        var inactiveResponse = await _client.GetAsync("/api/products?isActive=false");
+        Assert.Equal(HttpStatusCode.OK, inactiveResponse.StatusCode);
+        var inactiveProducts = await inactiveResponse.Content.ReadFromJsonAsync<IReadOnlyList<ProductDto>>();
+        Assert.NotNull(inactiveProducts);
+        Assert.DoesNotContain(inactiveProducts, p => p.Id == createdActive.Id);
+        Assert.Contains(inactiveProducts, p => p.Id == createdInactive.Id);
+    }
 }

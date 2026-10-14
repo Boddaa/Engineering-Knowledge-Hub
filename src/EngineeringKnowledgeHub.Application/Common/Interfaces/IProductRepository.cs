@@ -4,6 +4,7 @@ using EngineeringKnowledgeHub.Domain.Entities;
 
 public interface IProductRepository
 {
+    Task<IReadOnlyList<Product>> GetAllAsync(bool? isActive = null, CancellationToken cancellationToken = default);
     Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default);
     Task AddAsync(Product product, CancellationToken cancellationToken = default);

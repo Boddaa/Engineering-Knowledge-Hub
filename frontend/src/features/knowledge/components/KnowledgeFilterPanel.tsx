@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { useTaxonomyCatalog } from '@/features/taxonomy';
 import type { KnowledgeFilterState } from '../hooks/useKnowledgeSearch';
 import {
   VALID_KNOWLEDGE_STATUSES,
@@ -27,6 +27,7 @@ export const KnowledgeFilterPanel: React.FC<KnowledgeFilterPanelProps> = ({
   onApplyFilters,
   onResetFilters,
 }) => {
+  const { types, products, technologies, tags } = useTaxonomyCatalog();
   const [localStatus, setLocalStatus] = useState<string>(filters.status || '');
   const [localVerification, setLocalVerification] = useState<string>(
     filters.verificationStatus || ''
@@ -145,49 +146,85 @@ export const KnowledgeFilterPanel: React.FC<KnowledgeFilterPanelProps> = ({
             </select>
           </div>
 
-          {/* Knowledge Type ID */}
-          <Input
-            id="filter-knowledge-type-id"
-            label="Knowledge Type ID"
-            size="sm"
-            placeholder="UUID (e.g. 00000000-...)"
-            value={localKnowledgeTypeId}
-            onChange={(e) => setLocalKnowledgeTypeId(e.target.value)}
-            helperText="Filter by exact Knowledge Type UUID"
-          />
+          {/* Knowledge Type */}
+          <div className={styles.selectGroup}>
+            <label htmlFor="filter-knowledge-type-select" className={styles.selectLabel}>
+              Knowledge Type
+            </label>
+            <select
+              id="filter-knowledge-type-select"
+              className={styles.select}
+              value={localKnowledgeTypeId}
+              onChange={(e) => setLocalKnowledgeTypeId(e.target.value)}
+            >
+              <option value="">All Knowledge Types</option>
+              {types.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* Product ID */}
-          <Input
-            id="filter-product-id"
-            label="Product ID"
-            size="sm"
-            placeholder="UUID (e.g. 00000000-...)"
-            value={localProductId}
-            onChange={(e) => setLocalProductId(e.target.value)}
-            helperText="Filter by associated Product UUID"
-          />
+          {/* Product */}
+          <div className={styles.selectGroup}>
+            <label htmlFor="filter-product-select" className={styles.selectLabel}>
+              Product
+            </label>
+            <select
+              id="filter-product-select"
+              className={styles.select}
+              value={localProductId}
+              onChange={(e) => setLocalProductId(e.target.value)}
+            >
+              <option value="">All Products</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name} ({product.code})
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* Technology ID */}
-          <Input
-            id="filter-technology-id"
-            label="Technology ID"
-            size="sm"
-            placeholder="UUID (e.g. 00000000-...)"
-            value={localTechnologyId}
-            onChange={(e) => setLocalTechnologyId(e.target.value)}
-            helperText="Filter by associated Technology UUID"
-          />
+          {/* Technology */}
+          <div className={styles.selectGroup}>
+            <label htmlFor="filter-technology-select" className={styles.selectLabel}>
+              Technology
+            </label>
+            <select
+              id="filter-technology-select"
+              className={styles.select}
+              value={localTechnologyId}
+              onChange={(e) => setLocalTechnologyId(e.target.value)}
+            >
+              <option value="">All Technologies</option>
+              {technologies.map((tech) => (
+                <option key={tech.id} value={tech.id}>
+                  {tech.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* Tag ID */}
-          <Input
-            id="filter-tag-id"
-            label="Tag ID"
-            size="sm"
-            placeholder="UUID (e.g. 00000000-...)"
-            value={localTagId}
-            onChange={(e) => setLocalTagId(e.target.value)}
-            helperText="Filter by associated Tag UUID"
-          />
+          {/* Tag */}
+          <div className={styles.selectGroup}>
+            <label htmlFor="filter-tag-select" className={styles.selectLabel}>
+              Tag
+            </label>
+            <select
+              id="filter-tag-select"
+              className={styles.select}
+              value={localTagId}
+              onChange={(e) => setLocalTagId(e.target.value)}
+            >
+              <option value="">All Tags</option>
+              {tags.map((tag) => (
+                <option key={tag.id} value={tag.id}>
+                  {tag.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className={styles.panelFooter}>
@@ -224,6 +261,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
   onRemoveFilter,
   onClearAll,
 }) => {
+  const { types, products, technologies, tags } = useTaxonomyCatalog();
   const hasQuery = searchQuery.trim() !== '';
   const hasFilters = Object.values(filters).some(Boolean);
 
@@ -234,6 +272,11 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
   const formatUuidDisplay = (id: string) => {
     return `${id.substring(0, 8)}...`;
   };
+
+  const getTypeName = (id: string) => types.find((t) => t.id === id)?.name;
+  const getProductName = (id: string) => products.find((p) => p.id === id)?.name;
+  const getTechName = (id: string) => technologies.find((t) => t.id === id)?.name;
+  const getTagName = (id: string) => tags.find((t) => t.id === id)?.name;
 
   return (
     <div
@@ -288,10 +331,10 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
         </span>
       )}
 
-      {/* Knowledge Type ID chip */}
+      {/* Knowledge Type chip */}
       {filters.knowledgeTypeId && (
         <span className={styles.chip}>
-          <span>Type ID: {formatUuidDisplay(filters.knowledgeTypeId)}</span>
+          <span>Type: {getTypeName(filters.knowledgeTypeId) ?? formatUuidDisplay(filters.knowledgeTypeId)}</span>
           <button
             type="button"
             className={styles.chipCloseBtn}
@@ -303,10 +346,10 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
         </span>
       )}
 
-      {/* Product ID chip */}
+      {/* Product chip */}
       {filters.productId && (
         <span className={styles.chip}>
-          <span>Product ID: {formatUuidDisplay(filters.productId)}</span>
+          <span>Product: {getProductName(filters.productId) ?? formatUuidDisplay(filters.productId)}</span>
           <button
             type="button"
             className={styles.chipCloseBtn}
@@ -318,10 +361,10 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
         </span>
       )}
 
-      {/* Technology ID chip */}
+      {/* Technology chip */}
       {filters.technologyId && (
         <span className={styles.chip}>
-          <span>Tech ID: {formatUuidDisplay(filters.technologyId)}</span>
+          <span>Tech: {getTechName(filters.technologyId) ?? formatUuidDisplay(filters.technologyId)}</span>
           <button
             type="button"
             className={styles.chipCloseBtn}
@@ -333,10 +376,10 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
         </span>
       )}
 
-      {/* Tag ID chip */}
+      {/* Tag chip */}
       {filters.tagId && (
         <span className={styles.chip}>
-          <span>Tag ID: {formatUuidDisplay(filters.tagId)}</span>
+          <span>Tag: {getTagName(filters.tagId) ?? formatUuidDisplay(filters.tagId)}</span>
           <button
             type="button"
             className={styles.chipCloseBtn}

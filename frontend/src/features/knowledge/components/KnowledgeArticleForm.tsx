@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, ArrowLeft, Save } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useTaxonomyCatalog } from '@/features/taxonomy';
 import styles from './KnowledgeArticleForm.module.css';
 
 export interface KnowledgeArticleFormData {
@@ -102,6 +103,7 @@ export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
   });
 
   const [errors, setErrors] = useState<FormValidationErrors>({});
+  const { types, isLoading: isCatalogLoading, isSeeding, seedCatalog } = useTaxonomyCatalog();
 
   // Track the identity of the data currently hydrated in the form
   const hydratedIdentityRef = useRef<string | null>(null);
@@ -147,6 +149,10 @@ export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
     onSubmit(formData);
   };
 
+  const resolvedTypeName = initialData.knowledgeTypeId
+    ? types.find((t) => t.id === initialData.knowledgeTypeId)?.name
+    : undefined;
+
   return (
     <form className={styles.formCard} onSubmit={handleSubmit} noValidate>
       {/* API Level Error Banner */}
@@ -166,7 +172,11 @@ export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
           {initialData.knowledgeTypeId && (
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Knowledge Type</span>
-              <span className={styles.metaValue}>{initialData.knowledgeTypeId}</span>
+              <span className={styles.metaValue}>
+                {resolvedTypeName
+                  ? `${resolvedTypeName} (${initialData.knowledgeTypeId})`
+                  : initialData.knowledgeTypeId}
+              </span>
             </div>
           )}
           {initialData.authorId && (
@@ -213,17 +223,42 @@ export const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
         {mode === 'create' && (
           <div className={styles.gridTwoCol}>
             <div className={styles.fieldGroup}>
-              <Input
-                id="article-knowledge-type-id"
-                label="Knowledge Type ID *"
-                value={formData.knowledgeTypeId}
-                onChange={(e) => handleFieldChange('knowledgeTypeId', e.target.value)}
-                error={errors.knowledgeTypeId}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                disabled={isSubmitting}
-                helperText="Existing Knowledge Type UUID. Taxonomy selection will be introduced in a dedicated taxonomy phase."
-                aria-required="true"
-              />
+              <div className={styles.fieldLabel}>
+                <label htmlFor="article-knowledge-type-id">
+                  Knowledge Type <span className={styles.fieldRequired}>*</span>
+                </label>
+              </div>
+              <div className={styles.selectWithAction}>
+                <select
+                  id="article-knowledge-type-id"
+                  className={`${styles.select} ${errors.knowledgeTypeId ? styles.hasError : ''}`}
+                  value={formData.knowledgeTypeId}
+                  onChange={(e) => handleFieldChange('knowledgeTypeId', e.target.value)}
+                  disabled={isSubmitting || isCatalogLoading || isSeeding}
+                  aria-required="true"
+                >
+                  <option value="">Select Knowledge Type...</option>
+                  {types.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+                {types.length === 0 && !isCatalogLoading && (
+                  <Button
+                    type="button"
+                    variant="subtle"
+                    size="sm"
+                    onClick={() => seedCatalog()}
+                    disabled={isSeeding || isSubmitting}
+                    isLoading={isSeeding}
+                  >
+                    Seed Default Taxonomy
+                  </Button>
+                )}
+              </div>
+              {errors.knowledgeTypeId && <span className={styles.fieldError}>{errors.knowledgeTypeId}</span>}
+              <span className={styles.fieldHelper}>Structural intent of the engineering article.</span>
             </div>
 
             <div className={styles.fieldGroup}>

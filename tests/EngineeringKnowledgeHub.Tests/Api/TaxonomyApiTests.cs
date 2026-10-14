@@ -515,4 +515,119 @@ public class TaxonomyApiTests : IClassFixture<CustomWebApplicationFactory>
         var putResponse = await _client.PutAsJsonAsync($"/api/taxonomy/tags/{Guid.Empty}", new UpdateKnowledgeTagRequest("valid-tag"));
         Assert.Equal(HttpStatusCode.BadRequest, putResponse.StatusCode);
     }
+
+    // =========================================================================
+    // Collection Listing and Seed Tests (Phase 11)
+    // =========================================================================
+
+    [Fact]
+    public async Task GetCategories_ShouldReturnCollection_AndSupportBothRoutes()
+    {
+        var categoryName = $"Category For Listing {Guid.NewGuid():N}";
+        var createResponse = await _client.PostAsJsonAsync("/api/taxonomy/categories", new CreateCategoryRequest(
+            Name: categoryName,
+            Description: "Listing test description"));
+        var created = await createResponse.Content.ReadFromJsonAsync<KnowledgeCategoryDto>();
+        Assert.NotNull(created);
+
+        // 1. GET /api/taxonomy/categories
+        var response1 = await _client.GetAsync("/api/taxonomy/categories");
+        Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+        var list1 = await response1.Content.ReadFromJsonAsync<IReadOnlyList<KnowledgeCategoryDto>>();
+        Assert.NotNull(list1);
+        Assert.Contains(list1, c => c.Id == created.Id);
+
+        // 2. GET /api/categories (Architecture Section 23 route alias)
+        var response2 = await _client.GetAsync("/api/categories");
+        Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+        var list2 = await response2.Content.ReadFromJsonAsync<IReadOnlyList<KnowledgeCategoryDto>>();
+        Assert.NotNull(list2);
+        Assert.Contains(list2, c => c.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task GetTypes_ShouldReturnCollection_AndReturn200Ok()
+    {
+        var typeName = $"Type For Listing {Guid.NewGuid():N}";
+        var createResponse = await _client.PostAsJsonAsync("/api/taxonomy/types", new CreateKnowledgeTypeRequest(
+            Name: typeName,
+            Description: "Listing test type description"));
+        var created = await createResponse.Content.ReadFromJsonAsync<KnowledgeTypeDto>();
+        Assert.NotNull(created);
+
+        var response = await _client.GetAsync("/api/taxonomy/types");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = await response.Content.ReadFromJsonAsync<IReadOnlyList<KnowledgeTypeDto>>();
+        Assert.NotNull(list);
+        Assert.Contains(list, t => t.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task GetTags_ShouldReturnCollection_AndReturn200Ok()
+    {
+        var tagName = $"tag-list-{Guid.NewGuid():N}"[..16];
+        var createResponse = await _client.PostAsJsonAsync("/api/taxonomy/tags", new CreateKnowledgeTagRequest(
+            Name: tagName));
+        var created = await createResponse.Content.ReadFromJsonAsync<KnowledgeTagDto>();
+        Assert.NotNull(created);
+
+        var response = await _client.GetAsync("/api/taxonomy/tags");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = await response.Content.ReadFromJsonAsync<IReadOnlyList<KnowledgeTagDto>>();
+        Assert.NotNull(list);
+        Assert.Contains(list, t => t.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task PostSeed_ShouldSeedDefaultCatalog_AndBeIdempotentOnSubsequentCalls()
+    {
+        // 1. First seed invocation
+        var firstResponse = await _client.PostAsync("/api/taxonomy/seed", null);
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+        var firstResult = await firstResponse.Content.ReadFromJsonAsync<TaxonomySeedResultDto>();
+        Assert.NotNull(firstResult);
+
+        // Verify that seeded categories, types, products, technologies, and tags exist in listing APIs
+        var typesResponse = await _client.GetAsync("/api/taxonomy/types");
+        var types = await typesResponse.Content.ReadFromJsonAsync<IReadOnlyList<KnowledgeTypeDto>>();
+        Assert.NotNull(types);
+        Assert.Contains(types, t => t.Name == "Runbook");
+        Assert.Contains(types, t => t.Name == "Troubleshooting Guide");
+        Assert.Contains(types, t => t.Name == "Incident Postmortem");
+
+        var categoriesResponse = await _client.GetAsync("/api/taxonomy/categories");
+        var categories = await categoriesResponse.Content.ReadFromJsonAsync<IReadOnlyList<KnowledgeCategoryDto>>();
+        Assert.NotNull(categories);
+        Assert.Contains(categories, c => c.Name == "Backend & APIs");
+        Assert.Contains(categories, c => c.Name == "Infrastructure & IIS");
+
+        var productsResponse = await _client.GetAsync("/api/products");
+        var products = await productsResponse.Content.ReadFromJsonAsync<IReadOnlyList<ProductDto>>();
+        Assert.NotNull(products);
+        Assert.Contains(products, p => p.Code == "SUEZ-TOLL");
+        Assert.Contains(products, p => p.Code == "EKH");
+
+        var techResponse = await _client.GetAsync("/api/technologies");
+        var techs = await techResponse.Content.ReadFromJsonAsync<IReadOnlyList<TechnologyDto>>();
+        Assert.NotNull(techs);
+        Assert.Contains(techs, t => t.Name == "ASP.NET Core");
+        Assert.Contains(techs, t => t.Name == "SignalR");
+
+        var tagsResponse = await _client.GetAsync("/api/taxonomy/tags");
+        var tags = await tagsResponse.Content.ReadFromJsonAsync<IReadOnlyList<KnowledgeTagDto>>();
+        Assert.NotNull(tags);
+        Assert.Contains(tags, t => t.Name == "signalr");
+        Assert.Contains(tags, t => t.Name == "runbook");
+
+        // 2. Second seed invocation (must be 100% idempotent, adding 0 items)
+        var secondResponse = await _client.PostAsync("/api/taxonomy/seed", null);
+        Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+        var secondResult = await secondResponse.Content.ReadFromJsonAsync<TaxonomySeedResultDto>();
+        Assert.NotNull(secondResult);
+        Assert.Equal(0, secondResult.TypesAdded);
+        Assert.Equal(0, secondResult.CategoriesAdded);
+        Assert.Equal(0, secondResult.ProductsAdded);
+        Assert.Equal(0, secondResult.TechnologiesAdded);
+        Assert.Equal(0, secondResult.TagsAdded);
+    }
 }

@@ -31,6 +31,19 @@ public sealed class ProductsController(IProductService productService) : Control
     }
 
     /// <summary>
+    /// Retrieves all products, optionally filtered by active status.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<ProductDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] bool? isActive = null,
+        CancellationToken cancellationToken = default)
+    {
+        var products = await _productService.GetProductsAsync(isActive, cancellationToken);
+        return Ok(products);
+    }
+
+    /// <summary>
     /// Retrieves a product by its unique identifier.
     /// </summary>
     [HttpGet("{id:guid}")]

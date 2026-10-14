@@ -6,6 +6,19 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class ProductRepository(AppDbContext dbContext) : IProductRepository
 {
+    public async Task<IReadOnlyList<Product>> GetAllAsync(bool? isActive = null, CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Products.AsNoTracking();
+        if (isActive.HasValue)
+        {
+            query = query.Where(p => p.IsActive == isActive.Value);
+        }
+
+        return await query
+            .OrderBy(p => p.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await dbContext.Products

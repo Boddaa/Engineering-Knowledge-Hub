@@ -136,4 +136,22 @@ public class TechnologyApiTests : IClassFixture<CustomWebApplicationFactory>
         Assert.NotNull(problem);
         Assert.Equal(400, problem.Status);
     }
+
+    [Fact]
+    public async Task GetTechnologies_ShouldReturnCollection_AndReturn200Ok()
+    {
+        var techName = $"Collection Test Tech {Guid.NewGuid():N}";
+        var createResponse = await _client.PostAsJsonAsync("/api/technologies", new CreateTechnologyRequest(
+            Name: techName,
+            Description: "Collection test tech description"));
+        var created = await createResponse.Content.ReadFromJsonAsync<TechnologyDto>();
+        Assert.NotNull(created);
+
+        var response = await _client.GetAsync("/api/technologies");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var list = await response.Content.ReadFromJsonAsync<IReadOnlyList<TechnologyDto>>();
+        Assert.NotNull(list);
+        Assert.Contains(list, t => t.Id == created.Id);
+    }
 }

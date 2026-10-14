@@ -51,6 +51,12 @@ public class InMemoryKnowledgeCategoryRepository : IKnowledgeCategoryRepository
 {
     private readonly ConcurrentDictionary<Guid, KnowledgeCategory> _categories = new();
 
+    public Task<IReadOnlyList<KnowledgeCategory>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<KnowledgeCategory> list = _categories.Values.OrderBy(c => c.Name).ToList();
+        return Task.FromResult(list);
+    }
+
     public Task<KnowledgeCategory?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _categories.TryGetValue(id, out var category);
@@ -74,6 +80,12 @@ public class InMemoryKnowledgeTypeRepository : IKnowledgeTypeRepository
 {
     private readonly ConcurrentDictionary<Guid, KnowledgeType> _types = new();
 
+    public Task<IReadOnlyList<KnowledgeType>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<KnowledgeType> list = _types.Values.OrderBy(t => t.Name).ToList();
+        return Task.FromResult(list);
+    }
+
     public Task<KnowledgeType?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _types.TryGetValue(id, out var type);
@@ -96,6 +108,12 @@ public class InMemoryKnowledgeTypeRepository : IKnowledgeTypeRepository
 public class InMemoryKnowledgeTagRepository : IKnowledgeTagRepository
 {
     private readonly ConcurrentDictionary<Guid, KnowledgeTag> _tags = new();
+
+    public Task<IReadOnlyList<KnowledgeTag>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<KnowledgeTag> list = _tags.Values.OrderBy(t => t.Name).ToList();
+        return Task.FromResult(list);
+    }
 
     public Task<KnowledgeTag?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -126,6 +144,18 @@ public class InMemoryProductRepository : IProductRepository
 {
     private readonly ConcurrentDictionary<Guid, Product> _products = new();
 
+    public Task<IReadOnlyList<Product>> GetAllAsync(bool? isActive = null, CancellationToken cancellationToken = default)
+    {
+        var query = _products.Values.AsEnumerable();
+        if (isActive.HasValue)
+        {
+            query = query.Where(p => p.IsActive == isActive.Value);
+        }
+
+        IReadOnlyList<Product> list = query.OrderBy(p => p.Name).ToList();
+        return Task.FromResult(list);
+    }
+
     public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _products.TryGetValue(id, out var product);
@@ -155,6 +185,12 @@ public class InMemoryProductRepository : IProductRepository
 public class InMemoryTechnologyRepository : ITechnologyRepository
 {
     private readonly ConcurrentDictionary<Guid, Technology> _technologies = new();
+
+    public Task<IReadOnlyList<Technology>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Technology> list = _technologies.Values.OrderBy(t => t.Name).ToList();
+        return Task.FromResult(list);
+    }
 
     public Task<Technology?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {

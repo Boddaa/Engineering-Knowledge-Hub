@@ -4,6 +4,7 @@ using EngineeringKnowledgeHub.Domain.Entities;
 
 public interface IKnowledgeTagRepository
 {
+    Task<IReadOnlyList<KnowledgeTag>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<KnowledgeTag?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<KnowledgeTag?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
     Task AddAsync(KnowledgeTag tag, CancellationToken cancellationToken = default);
